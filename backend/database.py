@@ -15,14 +15,24 @@ Produces:
 """
 
 import os
-
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
-)
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from datetime import datetime
 
-DATABASE_PATH = os.getenv("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "shopmart.db"))
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
+)
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
+DATABASE_PATH = os.getenv(
+    "DATABASE_PATH", os.path.join(os.path.dirname(__file__), "shopmart.db")
+)
 os.makedirs(os.path.dirname(DATABASE_PATH) or ".", exist_ok=True)
 DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 
@@ -92,7 +102,9 @@ class ChatSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     owner = relationship("User", back_populates="chat_sessions")
-    messages = relationship("ChatMessage", back_populates="session", order_by="ChatMessage.created_at")
+    messages = relationship(
+        "ChatMessage", back_populates="session", order_by="ChatMessage.created_at"
+    )
 
 
 class ChatMessage(Base):
@@ -115,9 +127,13 @@ class EmployeeMeeting(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     date_time = Column(String, nullable=False)  # e.g., "Today, 2:30 PM - 3:15 PM"
-    attendees = Column(String, nullable=False)  # e.g., "CFO, Finance Controller, Audit Team"
+    attendees = Column(
+        String, nullable=False
+    )  # e.g., "CFO, Finance Controller, Audit Team"
     link = Column(String, nullable=False, default="#")
-    status = Column(String, default="Scheduled")  # "Starting soon", "Scheduled", "Completed"
+    status = Column(
+        String, default="Scheduled"
+    )  # "Starting soon", "Scheduled", "Completed"
     tags = Column(String, default="Finance")  # e.g., "Tax, Audit, Budget"
 
 
@@ -139,7 +155,9 @@ class LeaveRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    leave_type = Column(String, nullable=False)  # "Sick Leave", "Casual Leave", "Earned Leave", "Work From Home"
+    leave_type = Column(
+        String, nullable=False
+    )  # "Sick Leave", "Casual Leave", "Earned Leave", "Work From Home"
     start_date = Column(String, nullable=False)
     end_date = Column(String, nullable=False)
     days_count = Column(Integer, default=1)
@@ -156,7 +174,9 @@ class CompanyProject(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     client = Column(String, nullable=False)
-    status = Column(String, default="Active")  # "Active", "In Review", "Planning", "Completed"
+    status = Column(
+        String, default="Active"
+    )  # "Active", "In Review", "Planning", "Completed"
     progress_pct = Column(Integer, default=0)
     budget_allocated = Column(Float, default=0.0)
     budget_spent = Column(Float, default=0.0)
@@ -183,10 +203,9 @@ class JiraTicket(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-    
+
     # Run lightweight schema migrations for existing SQLite database
     with engine.connect() as conn:
-        import sqlite3
         raw_conn = conn.connection
         cursor = raw_conn.cursor()
 
@@ -196,7 +215,9 @@ def init_db():
         if "role" not in user_cols:
             cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'customer'")
         if "name" not in user_cols:
-            cursor.execute("ALTER TABLE users ADD COLUMN name TEXT DEFAULT 'Maya Sharma'")
+            cursor.execute(
+                "ALTER TABLE users ADD COLUMN name TEXT DEFAULT 'Maya Sharma'"
+            )
 
         # Products table migrations
         cursor.execute("PRAGMA table_info(products)")
@@ -214,8 +235,10 @@ def init_db():
                 cursor.execute(f"ALTER TABLE products ADD COLUMN {col_name} {col_def}")
         raw_conn.commit()
 
-    print(f"Database initialized at shopmart.db with tables: "
-          f"{', '.join(Base.metadata.tables.keys())}")
+    print(
+        f"Database initialized at shopmart.db with tables: "
+        f"{', '.join(Base.metadata.tables.keys())}"
+    )
 
 
 if __name__ == "__main__":

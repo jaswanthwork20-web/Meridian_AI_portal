@@ -8,9 +8,10 @@ These are just helper functions - Step 2b (user_api.py) wires them
 into actual signup/login endpoints.
 """
 
-from passlib.context import CryptContext
-from jose import jwt, JWTError
 from datetime import datetime, timedelta
+
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 # ------------------ CONFIG ------------------
 # In a real deployment, load this from an environment variable, never hardcode it.

@@ -6,11 +6,11 @@ Any endpoint that needs to know "who is asking" imports get_current_user
 from this file and adds it as a dependency.
 """
 
-from fastapi import Depends, HTTPException, Header
+from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
-from .db import SessionLocal, User
 from .auth_utils import decode_access_token
+from .db import SessionLocal, User
 
 
 def get_db():
@@ -22,11 +22,12 @@ def get_db():
 
 
 def get_current_user(
-    authorization: str = Header(None),
-    db: Session = Depends(get_db)
+    authorization: str = Header(None), db: Session = Depends(get_db)
 ) -> User:
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or malformed Authorization header")
+        raise HTTPException(
+            status_code=401, detail="Missing or malformed Authorization header"
+        )
 
     token = authorization.split(" ", 1)[1]
     payload = decode_access_token(token)
@@ -44,7 +45,6 @@ def require_employee(current_user: User = Depends(get_current_user)) -> User:
     if getattr(current_user, "role", None) != "employee":
         raise HTTPException(
             status_code=403,
-            detail="Forbidden: Employee access required. Customers are not authorized for internal tools."
+            detail="Forbidden: Employee access required. Customers are not authorized for internal tools.",
         )
     return current_user
-

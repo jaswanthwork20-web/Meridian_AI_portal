@@ -13,18 +13,20 @@ Run:
 """
 
 import json
-import re
-import pickle
 import os
+import pickle
+import re
 import shutil
-import faiss
 from datetime import datetime
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
+
+import boto3
+import faiss
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
-from sqlalchemy.orm import Session
 from sentence_transformers import SentenceTransformer
-import boto3
+from sqlalchemy.orm import Session
+
 
 def generate_bedrock_answer(user_query: str, matches: list) -> str:
     """
@@ -42,7 +44,7 @@ def generate_bedrock_answer(user_query: str, matches: list) -> str:
             "bedrock-runtime",
             aws_access_key_id=aws_key,
             aws_secret_access_key=aws_secret,
-            region_name=aws_region
+            region_name=aws_region,
         )
 
         context_blocks = []
@@ -68,12 +70,11 @@ def generate_bedrock_answer(user_query: str, matches: list) -> str:
             "max_tokens": 600,
             "temperature": 0.2,
             "system": system_prompt,
-            "messages": [{"role": "user", "content": user_content}]
+            "messages": [{"role": "user", "content": user_content}],
         }
 
         res = br.invoke_model(
-            modelId="anthropic.claude-3-haiku-20240307-v1:0",
-            body=json.dumps(payload)
+            modelId="anthropic.claude-3-haiku-20240307-v1:0", body=json.dumps(payload)
         )
         body = json.loads(res["body"].read().decode("utf-8"))
         answer = body["content"][0]["text"].strip()
@@ -87,14 +88,26 @@ def is_conversational_greeting(query: str) -> bool:
     q = query.strip().lower()
     cleaned = re.sub(r"[^a-zA-Z0-9 ]", "", q)
     greetings = [
-        "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
-        "who are you", "what can you do", "help me", "how are you", "namaste", "greetings"
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "who are you",
+        "what can you do",
+        "help me",
+        "how are you",
+        "namaste",
+        "greetings",
     ]
     if any(cleaned == g or cleaned.startswith(g + " ") for g in greetings):
         return True
     if "my name is" in cleaned or "i am " in cleaned:
         words = cleaned.split()
-        if len(words) <= 7 and not any(w in words for w in ["invoice", "zoom", "camera", "tax", "gst"]):
+        if len(words) <= 7 and not any(
+            w in words for w in ["invoice", "zoom", "camera", "tax", "gst"]
+        ):
             return True
     return False
 
@@ -112,7 +125,7 @@ def generate_bedrock_conversational_reply(user_query: str) -> str:
             "bedrock-runtime",
             aws_access_key_id=aws_key,
             aws_secret_access_key=aws_secret,
-            region_name=aws_region
+            region_name=aws_region,
         )
         prompt = (
             f"The employee said: '{user_query}'. "
@@ -124,11 +137,10 @@ def generate_bedrock_conversational_reply(user_query: str) -> str:
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": 250,
             "temperature": 0.3,
-            "messages": [{"role": "user", "content": prompt}]
+            "messages": [{"role": "user", "content": prompt}],
         }
         res = br.invoke_model(
-            modelId="anthropic.claude-3-haiku-20240307-v1:0",
-            body=json.dumps(payload)
+            modelId="anthropic.claude-3-haiku-20240307-v1:0", body=json.dumps(payload)
         )
         body = json.loads(res["body"].read().decode("utf-8"))
         return body["content"][0]["text"].strip()
@@ -136,13 +148,23 @@ def generate_bedrock_conversational_reply(user_query: str) -> str:
         print(f"[Bedrock Greeting Error]: {e}")
         return "Hello! I am your Meridian Enterprise Copilot powered by AWS Bedrock. How can I assist you today?"
 
+
+from .auth_dependency import get_current_user, get_db, require_employee
+from .auth_utils import create_access_token, hash_password, verify_password
 from .database import (
-    SessionLocal, User, ChatSession, ChatMessage, Product, Invoice,
-    EmployeeMeeting, EmployeeEmail, LeaveRequest, CompanyProject, JiraTicket, init_db
+    ChatMessage,
+    ChatSession,
+    CompanyProject,
+    EmployeeEmail,
+    EmployeeMeeting,
+    Invoice,
+    JiraTicket,
+    LeaveRequest,
+    Product,
+    User,
+    init_db,
 )
 from .jira_service import create_jira_issue
-from .auth_utils import hash_password, verify_password, create_access_token
-from .auth_dependency import get_current_user, get_db, require_employee
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploaded_tax_documents")
@@ -187,13 +209,19 @@ def dense_search(query, top_k=CANDIDATE_K):
     query_vec = model.encode([query], convert_to_numpy=True)
     faiss.normalize_L2(query_vec)
     scores, indices = index.search(query_vec, top_k)
-    return [(int(idx), float(score)) for idx, score in zip(indices[0], scores[0]) if idx != -1]
+    return [
+        (int(idx), float(score))
+        for idx, score in zip(indices[0], scores[0])
+        if idx != -1
+    ]
 
 
 def lexical_search(query, top_k=CANDIDATE_K):
     """Keyword search via BM25 - returns [(chunk_index, bm25_score), ...]."""
     scores = bm25.get_scores(tokenize(query))
-    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[
+        :top_k
+    ]
     return [(i, float(scores[i])) for i in top_indices]
 
 
@@ -207,17 +235,16 @@ def cloud_bedrock_retrieve(query, top_k=TOP_K):
     try:
         aws_key = os.getenv("AWS_ACCESS_KEY_ID")
         aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
-        kb_region = os.getenv("AWS_BEDROCK_KB_REGION") or os.getenv("AWS_REGION", "ap-south-1")
+        kb_region = os.getenv("AWS_BEDROCK_KB_REGION") or os.getenv(
+            "AWS_REGION", "ap-south-1"
+        )
         rt = boto3.client(
             "bedrock-agent-runtime",
             aws_access_key_id=aws_key,
             aws_secret_access_key=aws_secret,
-            region_name=kb_region
+            region_name=kb_region,
         )
-        res = rt.retrieve(
-            knowledgeBaseId=kb_id,
-            retrievalQuery={"text": query}
-        )
+        res = rt.retrieve(knowledgeBaseId=kb_id, retrievalQuery={"text": query})
         items = []
         for r in res.get("retrievalResults", []):
             score = r.get("score", 0.75)
@@ -226,20 +253,32 @@ def cloud_bedrock_retrieve(query, top_k=TOP_K):
 
             # Map filename back to Confluence title and URL if available
             fname = os.path.basename(s3_uri)
-            clean_fname = fname.lower().replace(".md", "").replace("_", "").replace("-", "")
-            matched_meta = next(
-                (m for m in meta if clean_fname in m["title"].lower().replace(" ", "").replace("_", "").replace("-", "")),
-                None
+            clean_fname = (
+                fname.lower().replace(".md", "").replace("_", "").replace("-", "")
             )
-            title = matched_meta["title"] if matched_meta else fname.replace(".md", "").replace("_", " ")
+            matched_meta = next(
+                (
+                    m
+                    for m in meta
+                    if clean_fname
+                    in m["title"]
+                    .lower()
+                    .replace(" ", "")
+                    .replace("_", "")
+                    .replace("-", "")
+                ),
+                None,
+            )
+            title = (
+                matched_meta["title"]
+                if matched_meta
+                else fname.replace(".md", "").replace("_", " ")
+            )
             url = matched_meta["url"] if matched_meta else s3_uri
 
-            items.append({
-                "score": round(score, 4),
-                "title": title,
-                "url": url,
-                "text": text
-            })
+            items.append(
+                {"score": round(score, 4), "title": title, "url": url, "text": text}
+            )
         if items and items[0]["score"] >= CONFIDENCE_THRESHOLD:
             return items
     except Exception as e:
@@ -263,7 +302,11 @@ def search(query, top_k=TOP_K):
     lexical_map = {idx: score for idx, score in lexical_items}
 
     # Normalize BM25 scores relative to max BM25 score in the lexical results
-    max_lex = max(lexical_map.values()) if lexical_map and max(lexical_map.values()) > 0 else 1.0
+    max_lex = (
+        max(lexical_map.values())
+        if lexical_map and max(lexical_map.values()) > 0
+        else 1.0
+    )
 
     all_indices = set(dense_map.keys()) | set(lexical_map.keys())
     scored_chunks = []
@@ -282,12 +325,14 @@ def search(query, top_k=TOP_K):
     results = []
     for idx, score in ranked:
         chunk = meta[idx]
-        results.append({
-            "score": round(score, 4),
-            "title": chunk["title"],
-            "url": chunk["url"],
-            "text": chunk["text"]
-        })
+        results.append(
+            {
+                "score": round(score, 4),
+                "title": chunk["title"],
+                "url": chunk["url"],
+                "text": chunk["text"],
+            }
+        )
     return results
 
 
@@ -304,6 +349,7 @@ app.add_middleware(
 # ------------------ Static Page Routes ------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 @app.get("/")
 @app.get("/portal")
 @app.get("/employee_portal.html")
@@ -313,6 +359,7 @@ def serve_portal():
         return FileResponse(fpath, media_type="text/html")
     raise HTTPException(status_code=404, detail="employee_portal.html not found")
 
+
 @app.get("/login")
 @app.get("/login.html")
 def serve_login():
@@ -320,6 +367,7 @@ def serve_login():
     if os.path.exists(fpath):
         return FileResponse(fpath, media_type="text/html")
     raise HTTPException(status_code=404, detail="login.html not found")
+
 
 @app.get("/customer_store.html")
 def serve_customer_store():
@@ -448,7 +496,6 @@ class CompanyProjectOut(BaseModel):
         from_attributes = True
 
 
-
 class SessionOut(BaseModel):
     id: int
     title: str
@@ -540,15 +587,19 @@ class TaxDocumentOut(BaseModel):
 @app.post("/signup", response_model=TokenResponse)
 def signup(req: SignupRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email).first():
-        raise HTTPException(status_code=400, detail="An account with this email already exists")
+        raise HTTPException(
+            status_code=400, detail="An account with this email already exists"
+        )
     desired_role = req.role if req.role in ("employee", "customer") else "customer"
-    user = User(email=req.email, hashed_password=hash_password(req.password), role=desired_role)
+    user = User(
+        email=req.email, hashed_password=hash_password(req.password), role=desired_role
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
     return TokenResponse(
         access_token=create_access_token(user.id, user.email),
-        role=user.role or "customer"
+        role=user.role or "customer",
     )
 
 
@@ -564,7 +615,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     return TokenResponse(
         access_token=create_access_token(user.id, user.email),
-        role=user.role or "customer"
+        role=user.role or "customer",
     )
 
 
@@ -595,7 +646,9 @@ def make_chat_title(user_query: str, match_title: str | None = None) -> str:
         return "Teams Login Help"
     if "european" in q_lower or "aggregation" in q_lower or "vat" in q_lower:
         return "European Tax Review"
-    if "product" in q_lower and ("add" in q_lower or "catalog" in q_lower or "master" in q_lower):
+    if "product" in q_lower and (
+        "add" in q_lower or "catalog" in q_lower or "master" in q_lower
+    ):
         return "Add Catalog Product"
     if "jira" in q_lower or "escalat" in q_lower:
         return "Support Escalation"
@@ -604,17 +657,25 @@ def make_chat_title(user_query: str, match_title: str | None = None) -> str:
     if match_title:
         clean = match_title
         for prefix in [
-            "Understanding ", "How to ", "Guide to ", "Fixing ", "Overview of ",
-            "Instructions for ", "Process for "
+            "Understanding ",
+            "How to ",
+            "Guide to ",
+            "Fixing ",
+            "Overview of ",
+            "Instructions for ",
+            "Process for ",
         ]:
             if clean.lower().startswith(prefix.lower()):
-                clean = clean[len(prefix):]
+                clean = clean[len(prefix) :]
         for suffix in [
-            " in the invoicing system", " in the product catalog", " in meridian",
-            " procedure", " guidelines"
+            " in the invoicing system",
+            " in the product catalog",
+            " in meridian",
+            " procedure",
+            " guidelines",
         ]:
             if clean.lower().endswith(suffix.lower()):
-                clean = clean[:-len(suffix)]
+                clean = clean[: -len(suffix)]
 
         words = clean.strip().split()
         if len(words) <= 4:
@@ -624,10 +685,35 @@ def make_chat_title(user_query: str, match_title: str | None = None) -> str:
 
     # 3. Fallback: extract key words from user query
     stopwords = {
-        "what", "is", "the", "rule", "for", "how", "do", "i", "can", "you", "tell", "me",
-        "about", "please", "help", "with", "a", "an", "and", "or", "to", "in", "of", "on", "at"
+        "what",
+        "is",
+        "the",
+        "rule",
+        "for",
+        "how",
+        "do",
+        "i",
+        "can",
+        "you",
+        "tell",
+        "me",
+        "about",
+        "please",
+        "help",
+        "with",
+        "a",
+        "an",
+        "and",
+        "or",
+        "to",
+        "in",
+        "of",
+        "on",
+        "at",
     }
-    cleaned_words = [w.strip("?,.!") for w in q_lower.split() if w.strip("?,.!") not in stopwords]
+    cleaned_words = [
+        w.strip("?,.!") for w in q_lower.split() if w.strip("?,.!") not in stopwords
+    ]
     if cleaned_words:
         selected = cleaned_words[:3]
         title = " ".join(selected).title()
@@ -640,7 +726,9 @@ def make_chat_title(user_query: str, match_title: str | None = None) -> str:
 
 # ------------------ Chat session endpoints ------------------
 @app.post("/sessions", response_model=SessionOut)
-def create_session(current_user: User = Depends(require_employee), db: Session = Depends(get_db)):
+def create_session(
+    current_user: User = Depends(require_employee), db: Session = Depends(get_db)
+):
     session = ChatSession(user_id=current_user.id, title="New conversation")
     db.add(session)
     db.commit()
@@ -649,7 +737,9 @@ def create_session(current_user: User = Depends(require_employee), db: Session =
 
 
 @app.get("/sessions", response_model=list[SessionOut])
-def list_sessions(current_user: User = Depends(require_employee), db: Session = Depends(get_db)):
+def list_sessions(
+    current_user: User = Depends(require_employee), db: Session = Depends(get_db)
+):
     return (
         db.query(ChatSession)
         .filter(ChatSession.user_id == current_user.id)
@@ -659,8 +749,16 @@ def list_sessions(current_user: User = Depends(require_employee), db: Session = 
 
 
 @app.delete("/sessions/{session_id}")
-def delete_session(session_id: int, current_user: User = Depends(require_employee), db: Session = Depends(get_db)):
-    session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id).first()
+def delete_session(
+    session_id: int,
+    current_user: User = Depends(require_employee),
+    db: Session = Depends(get_db),
+):
+    session = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     db.query(ChatMessage).filter(ChatMessage.session_id == session.id).delete()
@@ -668,9 +766,19 @@ def delete_session(session_id: int, current_user: User = Depends(require_employe
     db.commit()
     return {"status": "ok"}
 
+
 @app.patch("/sessions/{session_id}")
-def rename_session(session_id: int, req: dict, current_user: User = Depends(require_employee), db: Session = Depends(get_db)):
-    session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id).first()
+def rename_session(
+    session_id: int,
+    req: dict,
+    current_user: User = Depends(require_employee),
+    db: Session = Depends(get_db),
+):
+    session = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     new_title = req.get("title", "").strip()
@@ -681,10 +789,16 @@ def rename_session(session_id: int, req: dict, current_user: User = Depends(requ
 
 
 @app.get("/sessions/{session_id}/messages", response_model=list[MessageOut])
-def get_messages(session_id: int, current_user: User = Depends(require_employee), db: Session = Depends(get_db)):
-    session = db.query(ChatSession).filter(
-        ChatSession.id == session_id, ChatSession.user_id == current_user.id
-    ).first()
+def get_messages(
+    session_id: int,
+    current_user: User = Depends(require_employee),
+    db: Session = Depends(get_db),
+):
+    session = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session.messages
@@ -695,16 +809,20 @@ def post_message(
     session_id: int,
     req: MessageIn,
     current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    session = db.query(ChatSession).filter(
-        ChatSession.id == session_id, ChatSession.user_id == current_user.id
-    ).first()
+    session = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Save the user's message
-    user_msg = ChatMessage(session_id=session.id, role="user", kind="text", content=req.message)
+    user_msg = ChatMessage(
+        session_id=session.id, role="user", kind="text", content=req.message
+    )
     db.add(user_msg)
 
     # Intercept conversational greetings / introductions
@@ -712,7 +830,9 @@ def post_message(
         greeting_reply = generate_bedrock_conversational_reply(req.message)
         if session.title in ("New conversation", "New Conversation"):
             session.title = "Welcome & Greetings"
-        bot_msg = ChatMessage(session_id=session.id, role="bot", kind="text", content=greeting_reply)
+        bot_msg = ChatMessage(
+            session_id=session.id, role="bot", kind="text", content=greeting_reply
+        )
         db.add(bot_msg)
         db.commit()
         return ChatReplyOut(escalate=False, top_score=1.0, matches=[])
@@ -727,23 +847,24 @@ def post_message(
         match_title = results[0]["title"] if (not escalate and results) else None
         session.title = make_chat_title(req.message, match_title)
 
-
     # Save the bot's response
     if escalate:
         bot_msg = ChatMessage(
             session_id=session.id,
             role="bot",
             kind="escalate",
-            content="I could not find specific documentation matching your query in the Meridian Confluence knowledge base. Would you like to create an L2 IT Support ticket?"
+            content="I could not find specific documentation matching your query in the Meridian Confluence knowledge base. Would you like to create an L2 IT Support ticket?",
         )
     else:
         # Generate intelligent AI response via AWS Bedrock (Claude 3 Haiku in ap-south-1)
         ai_answer = generate_bedrock_answer(req.message, results)
-        payload = {
-            "ai_answer": ai_answer,
-            "matches": results
-        }
-        bot_msg = ChatMessage(session_id=session.id, role="bot", kind="matches", content=json.dumps(payload))
+        payload = {"ai_answer": ai_answer, "matches": results}
+        bot_msg = ChatMessage(
+            session_id=session.id,
+            role="bot",
+            kind="matches",
+            content=json.dumps(payload),
+        )
     db.add(bot_msg)
 
     db.commit()
@@ -756,11 +877,13 @@ def record_feedback(
     session_id: int,
     feedback: FeedbackIn,
     current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    session = db.query(ChatSession).filter(
-        ChatSession.id == session_id, ChatSession.user_id == current_user.id
-    ).first()
+    session = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -778,7 +901,7 @@ def record_feedback(
             session_id=session.id,
             user_email=current_user.email,
             user_query=user_query,
-            chat_history=history
+            chat_history=history,
         )
 
         # Save to database
@@ -792,7 +915,7 @@ def record_feedback(
             status=jira_res["status"],
             priority=jira_res["priority"],
             ticket_url=jira_res["ticket_url"],
-            is_live=jira_res["is_live_jira"]
+            is_live=jira_res["is_live_jira"],
         )
         db.add(db_ticket)
 
@@ -801,7 +924,7 @@ def record_feedback(
             session_id=session.id,
             role="bot",
             kind="jira_ticket",
-            content=json.dumps(jira_res)
+            content=json.dumps(jira_res),
         )
         db.add(bot_msg)
         db.commit()
@@ -812,10 +935,12 @@ def record_feedback(
             session_id=session.id,
             role="bot",
             kind="resolved",
-            content=json.dumps({
-                "status": "Resolved",
-                "note": "Employee confirmed query was successfully resolved."
-            })
+            content=json.dumps(
+                {
+                    "status": "Resolved",
+                    "note": "Employee confirmed query was successfully resolved.",
+                }
+            ),
         )
         db.add(bot_msg)
         db.commit()
@@ -831,7 +956,9 @@ def health():
 
 # ------------------ Product endpoints ------------------
 @app.get("/products", response_model=list[ProductOut])
-def list_products(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_products(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     return db.query(Product).all()
 
 
@@ -839,14 +966,14 @@ def list_products(current_user: User = Depends(get_current_user), db: Session = 
 def create_product(
     req: ProductCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # NOTE: no admin-role check yet - fine for a single-user POC, but before
     # multiple users exist this should be restricted to an admin role.
     product = Product(
         name=req.name,
         price=req.price,
-        show_in_invoice_dropdown=1 if req.show_in_invoice_dropdown else 0
+        show_in_invoice_dropdown=1 if req.show_in_invoice_dropdown else 0,
     )
     db.add(product)
     db.commit()
@@ -859,7 +986,7 @@ def create_product(
 def upload_tax_document(
     client_name: str = Form(...),
     file: UploadFile = File(...),
-    current_user: User = Depends(require_employee)
+    current_user: User = Depends(require_employee),
 ):
     # Filename is namespaced by client, since requirement 3 is: the tax
     # document that applies depends on WHICH client the invoice is for -
@@ -877,7 +1004,7 @@ def upload_tax_document(
 def create_invoice(
     req: InvoiceCreate,
     current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     product = db.query(Product).filter(Product.id == req.product_id).first()
     if not product:
@@ -886,7 +1013,7 @@ def create_invoice(
     if req.tax_code not in VALID_TAX_CODES:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid tax code. Must be one of: {', '.join(VALID_TAX_CODES)}"
+            detail=f"Invalid tax code. Must be one of: {', '.join(VALID_TAX_CODES)}",
         )
 
     # Real backend enforcement of the "remarks required for the new tax
@@ -895,7 +1022,7 @@ def create_invoice(
     if req.tax_code == NEW_TAX_CODE and not (req.remarks and req.remarks.strip()):
         raise HTTPException(
             status_code=400,
-            detail=f"Remarks is required for tax code {NEW_TAX_CODE}. (Error code: INV-REM-102)"
+            detail=f"Remarks is required for tax code {NEW_TAX_CODE}. (Error code: INV-REM-102)",
         )
 
     invoice = Invoice(
@@ -906,7 +1033,7 @@ def create_invoice(
         tax_code=req.tax_code,
         tax_document_filename=req.tax_document_filename,
         remarks=req.remarks,
-        status=req.status if req.status else "Raised"
+        status=req.status if req.status else "Raised",
     )
     db.add(invoice)
     db.commit()
@@ -915,7 +1042,9 @@ def create_invoice(
 
 
 @app.get("/invoices", response_model=list[InvoiceOut])
-def list_invoices(current_user: User = Depends(require_employee), db: Session = Depends(get_db)):
+def list_invoices(
+    current_user: User = Depends(require_employee), db: Session = Depends(get_db)
+):
     return db.query(Invoice).filter(Invoice.user_id == current_user.id).all()
 
 
@@ -924,11 +1053,13 @@ def update_invoice_status(
     invoice_id: int,
     req: InvoiceStatusUpdate,
     current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    invoice = db.query(Invoice).filter(
-        Invoice.id == invoice_id, Invoice.user_id == current_user.id
-    ).first()
+    invoice = (
+        db.query(Invoice)
+        .filter(Invoice.id == invoice_id, Invoice.user_id == current_user.id)
+        .first()
+    )
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     if req.status is not None:
@@ -951,16 +1082,14 @@ def update_invoice_status(
 # ------------------ Employee Workspace Endpoints ------------------
 @app.get("/employee/meetings", response_model=list[MeetingOut])
 def get_employee_meetings(
-    current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_employee), db: Session = Depends(get_db)
 ):
     return db.query(EmployeeMeeting).order_by(EmployeeMeeting.id.asc()).all()
 
 
 @app.get("/employee/emails", response_model=list[EmailOut])
 def get_employee_emails(
-    current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_employee), db: Session = Depends(get_db)
 ):
     return db.query(EmployeeEmail).order_by(EmployeeEmail.id.asc()).all()
 
@@ -969,7 +1098,7 @@ def get_employee_emails(
 def toggle_email_read(
     email_id: int,
     current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     email = db.query(EmployeeEmail).filter(EmployeeEmail.id == email_id).first()
     if not email:
@@ -982,12 +1111,14 @@ def toggle_email_read(
 
 @app.get("/employee/leaves", response_model=LeaveDashboardOut)
 def get_employee_leaves(
-    current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_employee), db: Session = Depends(get_db)
 ):
-    user_leaves = db.query(LeaveRequest).filter(
-        LeaveRequest.user_id == current_user.id
-    ).order_by(LeaveRequest.created_at.desc()).all()
+    user_leaves = (
+        db.query(LeaveRequest)
+        .filter(LeaveRequest.user_id == current_user.id)
+        .order_by(LeaveRequest.created_at.desc())
+        .all()
+    )
 
     # Starting annual leave allowances
     quotas = {
@@ -998,7 +1129,9 @@ def get_employee_leaves(
     }
     for req in user_leaves:
         if req.status in ("Approved", "Pending") and req.leave_type in quotas:
-            quotas[req.leave_type] = max(0, quotas[req.leave_type] - (req.days_count or 1))
+            quotas[req.leave_type] = max(
+                0, quotas[req.leave_type] - (req.days_count or 1)
+            )
 
     return LeaveDashboardOut(balances=quotas, requests=user_leaves)
 
@@ -1007,7 +1140,7 @@ def get_employee_leaves(
 def apply_leave(
     req: LeaveCreateIn,
     current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     leave = LeaveRequest(
         user_id=current_user.id,
@@ -1016,7 +1149,7 @@ def apply_leave(
         end_date=req.end_date,
         days_count=max(1, req.days_count),
         reason=req.reason,
-        status="Pending"
+        status="Pending",
     )
     db.add(leave)
     db.commit()
@@ -1026,16 +1159,18 @@ def apply_leave(
 
 @app.get("/employee/projects", response_model=list[CompanyProjectOut])
 def get_company_projects(
-    current_user: User = Depends(require_employee),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_employee), db: Session = Depends(get_db)
 ):
     return db.query(CompanyProject).order_by(CompanyProject.id.asc()).all()
 
 
-
 # ------------------ Customer Storefront Endpoints ------------------
 @app.get("/api/customer/products", response_model=list[CustomerProductOut])
-def get_customer_products(category: str | None = None, search: str | None = None, db: Session = Depends(get_db)):
+def get_customer_products(
+    category: str | None = None,
+    search: str | None = None,
+    db: Session = Depends(get_db),
+):
     query = db.query(Product)
     if category and category.strip().lower() not in ("all", "all categories"):
         query = query.filter(Product.category.ilike(f"%{category.strip()}%"))
@@ -1046,37 +1181,53 @@ def get_customer_products(category: str | None = None, search: str | None = None
     results = []
     for p in products:
         disc = p.discount_percent if p.discount_percent is not None else 15
-        orig_price = round(p.price / (1.0 - (disc / 100.0)), 2) if disc < 100 else round(p.price * 1.25, 2)
-        results.append({
-            "id": p.id,
-            "name": p.name,
-            "price": p.price,
-            "rating": p.rating if p.rating is not None else 4.5,
-            "review_count": p.review_count if p.review_count is not None else 120,
-            "category": p.category or "Office Tech",
-            "discount_percent": disc,
-            "image_url": p.image_url,
-            "delivery_estimate": p.delivery_estimate or "Tomorrow, 11 AM",
-            "original_price": orig_price
-        })
+        orig_price = (
+            round(p.price / (1.0 - (disc / 100.0)), 2)
+            if disc < 100
+            else round(p.price * 1.25, 2)
+        )
+        results.append(
+            {
+                "id": p.id,
+                "name": p.name,
+                "price": p.price,
+                "rating": p.rating if p.rating is not None else 4.5,
+                "review_count": p.review_count if p.review_count is not None else 120,
+                "category": p.category or "Office Tech",
+                "discount_percent": disc,
+                "image_url": p.image_url,
+                "delivery_estimate": p.delivery_estimate or "Tomorrow, 11 AM",
+                "original_price": orig_price,
+            }
+        )
     return results
 
 
 # ------------------ Static Frontend Serving & No-Cache ------------------
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+
 
 @app.middleware("http")
 async def add_no_cache_headers(request, call_next):
     response = await call_next(request)
     path = request.url.path.lower()
-    if path == "/" or path.endswith(".html") or path.startswith("/employee") or path.startswith("/api"):
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    if (
+        path == "/"
+        or path.endswith(".html")
+        or path.startswith("/employee")
+        or path.startswith("/api")
+    ):
+        response.headers["Cache-Control"] = (
+            "no-cache, no-store, must-revalidate, max-age=0"
+        )
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
 
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 @app.get("/")
 def serve_root():
@@ -1084,6 +1235,7 @@ def serve_root():
     if os.path.exists(store_path):
         return FileResponse(store_path)
     return FileResponse(os.path.join(BASE_DIR, "login.html"))
+
 
 @app.get("/meridian.html")
 @app.get("/shopmart.html")
@@ -1098,7 +1250,9 @@ def redirect_legacy():
   else { window.location.replace("customer_store.html"); }
 </script>
 </head><body>Redirecting to portal...</body></html>"""
-    return HTMLResponse(content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+    return HTMLResponse(
+        content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+    )
+
 
 app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="static")
-

@@ -3,28 +3,34 @@ Jira integration service for Meridian OfficeTech.
 Supports both live Atlassian Jira Cloud REST API (v2/v3) and enterprise simulated mode.
 """
 
-import os
-import json
 import base64
+import json
+import os
 import time
 from datetime import datetime
+
 import requests
 from dotenv import load_dotenv
 
 # Ensure local .env is loaded
 load_dotenv()
 
+
 def _get_jira_config():
     """Reads fresh Jira configuration from environment or .env file."""
     load_dotenv(override=True)
-    instance_url = os.getenv("JIRA_INSTANCE_URL", "").strip().strip('"').strip("'").rstrip("/")
+    instance_url = (
+        os.getenv("JIRA_INSTANCE_URL", "").strip().strip('"').strip("'").rstrip("/")
+    )
     email = os.getenv("JIRA_EMAIL", "").strip().strip('"').strip("'")
     token = os.getenv("JIRA_API_TOKEN", "").strip().strip('"').strip("'")
     project_key = os.getenv("JIRA_PROJECT_KEY", "KAN").strip().strip('"').strip("'")
     return instance_url, email, token, project_key
 
 
-def create_jira_issue(session_id: int, user_email: str, user_query: str, chat_history: list[dict]) -> dict:
+def create_jira_issue(
+    session_id: int, user_email: str, user_query: str, chat_history: list[dict]
+) -> dict:
     """
     Creates a Jira ticket for an unresolved query with the user query and chat history.
     If real Jira credentials (JIRA_INSTANCE_URL, JIRA_EMAIL, JIRA_API_TOKEN) are provided,
@@ -59,7 +65,11 @@ def create_jira_issue(session_id: int, user_email: str, user_query: str, chat_hi
 
         transcript_lines.append(f"* {speaker}: {content}")
 
-    transcript_text = "\n".join(transcript_lines) if transcript_lines else f"* Employee: {clean_query}"
+    transcript_text = (
+        "\n".join(transcript_lines)
+        if transcript_lines
+        else f"* Employee: {clean_query}"
+    )
 
     # Build Jira description with complete context and chat transcript
     jira_description = (
@@ -79,16 +89,21 @@ def create_jira_issue(session_id: int, user_email: str, user_query: str, chat_hi
             headers = {
                 "Authorization": f"Basic {b64_auth}",
                 "Content-Type": "application/json",
-                "Accept": "application/json"
+                "Accept": "application/json",
             }
 
             # Discover valid issue type for this project (e.g. Bug, Task, Story)
             issuetype_name = "Task"
             try:
-                p_res = requests.get(f"{instance_url}/rest/api/2/project/{project_key}", headers=headers, timeout=5)
+                p_res = requests.get(
+                    f"{instance_url}/rest/api/2/project/{project_key}",
+                    headers=headers,
+                    timeout=5,
+                )
                 if p_res.ok:
                     available_types = [
-                        it.get("name") for it in p_res.json().get("issueTypes", [])
+                        it.get("name")
+                        for it in p_res.json().get("issueTypes", [])
                         if not it.get("subtask")
                     ]
                     if "Bug" in available_types:
@@ -107,14 +122,21 @@ def create_jira_issue(session_id: int, user_email: str, user_query: str, chat_hi
                     "project": {"key": project_key},
                     "summary": summary,
                     "description": jira_description,
-                    "issuetype": {"name": issuetype_name}
+                    "issuetype": {"name": issuetype_name},
                 }
             }
-            res = requests.post(f"{instance_url}/rest/api/2/issue", headers=headers, json=payload, timeout=8)
+            res = requests.post(
+                f"{instance_url}/rest/api/2/issue",
+                headers=headers,
+                json=payload,
+                timeout=8,
+            )
             if res.status_code in (200, 201):
                 data = res.json()
                 key = data.get("key", f"{project_key}-{session_id}")
-                print(f"[JiraService] Successfully created live Jira Cloud ticket: {key}")
+                print(
+                    f"[JiraService] Successfully created live Jira Cloud ticket: {key}"
+                )
                 return {
                     "is_live_jira": True,
                     "ticket_key": key,
@@ -127,10 +149,12 @@ def create_jira_issue(session_id: int, user_email: str, user_query: str, chat_hi
                     "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
                     "reporter": user_email,
                     "transcript": transcript_text,
-                    "note": f"Live Jira ticket #{key} successfully created in Atlassian project {project_key} with full conversation transcript."
+                    "note": f"Live Jira ticket #{key} successfully created in Atlassian project {project_key} with full conversation transcript.",
                 }
             else:
-                print(f"[JiraService] Live Jira API returned status {res.status_code}: {res.text}")
+                print(
+                    f"[JiraService] Live Jira API returned status {res.status_code}: {res.text}"
+                )
         except Exception as e:
             print(f"[JiraService] Live Jira creation error, falling back to local: {e}")
 
@@ -152,5 +176,5 @@ def create_jira_issue(session_id: int, user_email: str, user_query: str, chat_hi
         "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
         "reporter": user_email,
         "transcript": transcript_text,
-        "note": f"Jira ticket #{ticket_key} automatically created and assigned to the L2 Support Desk with query context and chat history."
+        "note": f"Jira ticket #{ticket_key} automatically created and assigned to the L2 Support Desk with query context and chat history.",
     }
