@@ -1,0 +1,328 @@
+name: Meridian CI-CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Configure these repository/environment variables in GitHub:
+# AWS_ACCOUNT_ID, AWS_REGION, AWS_ROLE_ARN, EC2_INSTANCE_ID,
+# PUBLIC_API_BASE, ECR_FRONTEND_REPOSITORY, ECR_BACKEND_REPOSITORY.
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+  ECR_REGISTRY: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION || 'ap-south-1' }}.amazonaws.com
+  ECR_FRONTEND_REPOSITORY: ${{ vars.ECR_FRONTEND_REPOSITORY || 'meridian-frontend' }}
+  ECR_BACKEND_REPOSITORY: ${{ vars.ECR_BACKEND_REPOSITORY || 'meridian-backend' }}
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: Python syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile backend
+        working-directory: backend
+        run: python -m compileall -q .
+
+  lint:
+    name: Ruff lint
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip ruff
+      - name: Run Ruff
+        working-directory: backend
+        run: ruff check .
+
+  unused-code:
+    name: Unused code scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip vulture
+      - name: Run Vulture
+        working-directory: backend
+        run: vulture . --min-confidence 80
+
+  type-check:
+    name: MyPy type check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt mypy
+      - name: Run MyPy
+        working-directory: backend
+        run: mypy .
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip pytest pytest-cov
+      - name: Run tests when present
+        shell: bash
+        run: |
+          if compgen -G 'tests/test_*.py' > /dev/null; then
+            pytest tests --cov=backend --cov-report=term-missing --cov-report=xml
+          else
+            echo 'No tests/test_*.py files found; syntax validation is covered by the syntax job.'
+          fi
+      - name: Upload coverage
+        if: hashFiles('coverage.xml') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  security:
+    name: Bandit security scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip bandit
+      - working-directory: backend
+        run: bandit -r . -ll
+
+  secrets:
+    name: Secret detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-scan:
+    name: Dependency scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --upgrade pip pip-audit
+      - working-directory: backend
+        run: pip-audit -r requirements.txt
+
+  build:
+    name: Build Docker images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [syntax, lint, unused-code, type-check, test, security, secrets, dependency-scan]
+    runs-on: ubuntu-latest
+    environment: docker-build-approval
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build frontend image
+        run: docker build -t "$ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:${{ github.sha }}" ./frontend
+      - name: Build backend image
+        run: docker build -t "$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:${{ github.sha }}" ./backend
+      - name: Save images
+        run: |
+          docker save "$ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:${{ github.sha }}" -o frontend.tar
+          docker save "$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:${{ github.sha }}" -o backend.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: container-images
+          path: |
+            frontend.tar
+            backend.tar
+
+  container-security:
+    name: Container vulnerability scan
+    needs: build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: container-images
+      - run: |
+          docker load -i frontend.tar
+          docker load -i backend.tar
+      - uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          format: table
+          exit-code: '0'
+      - uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPOSITORY }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          format: table
+          exit-code: '0'
+
+  sbom:
+    name: Generate SBOM
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: container-images
+      - run: |
+          docker load -i frontend.tar
+          docker load -i backend.tar
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft "${ECR_REGISTRY}/${ECR_FRONTEND_REPOSITORY}:${{ github.sha }}" -o cyclonedx-json=frontend-sbom.json
+          syft "${ECR_REGISTRY}/${ECR_BACKEND_REPOSITORY}:${{ github.sha }}" -o cyclonedx-json=backend-sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: '*-sbom.json'
+
+  push-ecr:
+    name: Push images to ECR
+    needs: [container-security, sbom]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: container-images
+      - run: |
+          docker load -i frontend.tar
+          docker load -i backend.tar
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Push images
+        run: |
+          docker push "$ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:${{ github.sha }}"
+          docker push "$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:${{ github.sha }}"
+
+  deploy:
+    name: Deploy to EC2 with SSM
+    needs: push-ecr
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > ssm-commands.json <<EOF
+          {"commands":[
+            "set -e",
+            "cd /home/ssm-user/meridian-ai-portal",
+            "export IMAGE_TAG='${{ github.sha }}'",
+            "export ECR_REGISTRY='${{ env.ECR_REGISTRY }}'",
+            "export ECR_FRONTEND_REPOSITORY='${{ env.ECR_FRONTEND_REPOSITORY }}'",
+            "export ECR_BACKEND_REPOSITORY='${{ env.ECR_BACKEND_REPOSITORY }}'",
+            "if [ -f .current_version ]; then cp .current_version .previous_version; fi",
+            "aws ecr get-login-password --region '${{ env.AWS_REGION }}' | docker login --username AWS --password-stdin '${{ env.ECR_REGISTRY }}'",
+            "docker compose pull",
+            "docker compose up -d",
+            "docker compose ps",
+            "echo '${{ github.sha }}' > .current_version"
+          ]}
+          EOF
+          COMMAND_ID=$(aws ssm send-command --instance-ids '${{ vars.EC2_INSTANCE_ID }}' --document-name AWS-RunShellScript --comment 'Deploy Meridian ${{ github.sha }}' --parameters file://ssm-commands.json --query Command.CommandId --output text)
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}'
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}' --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' --output json
+
+  verify:
+    name: Verify deployment
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Check EC2 containers and backend health
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > verify.json <<EOF
+          {"commands":[
+            "set -e",
+            "cd /home/ssm-user/meridian-ai-portal",
+            "docker compose ps",
+            "curl --fail --silent http://127.0.0.1:8001/health",
+            "curl --fail --silent http://127.0.0.1/health"
+          ]}
+          EOF
+          COMMAND_ID=$(aws ssm send-command --instance-ids '${{ vars.EC2_INSTANCE_ID }}' --document-name AWS-RunShellScript --comment 'Verify Meridian ${{ github.sha }}' --parameters file://verify.json --query Command.CommandId --output text)
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}'
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}' --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' --output json
+
+  rollback:
+    name: Roll back deployment
+    needs: [deploy, verify]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Roll back to previous image tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > rollback.json <<'EOF'
+          {"commands":[
+            "set -e",
+            "cd /home/ssm-user/meridian-ai-portal",
+            "test -s .previous_version",
+            "export IMAGE_TAG=$(cat .previous_version)",
+            "docker compose pull",
+            "docker compose up -d",
+            "docker compose ps",
+            "cp .previous_version .current_version"
+          ]}
+          EOF
+          COMMAND_ID=$(aws ssm send-command --instance-ids '${{ vars.EC2_INSTANCE_ID }}' --document-name AWS-RunShellScript --comment 'Rollback Meridian' --parameters file://rollback.json --query Command.CommandId --output text)
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}'

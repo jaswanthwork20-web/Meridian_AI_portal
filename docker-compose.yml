@@ -1,0 +1,40 @@
+services:
+  backend:
+    image: ${ECR_REGISTRY}/${ECR_BACKEND_REPOSITORY}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      AWS_REGION: ${AWS_REGION}
+      DATABASE_PATH: /app/backend/data/shopmart.db
+    ports:
+      - "8001:8001"
+    volumes:
+      - backend-uploads:/app/backend/uploaded_tax_documents
+      - backend-db:/app/backend/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  frontend:
+    image: ${ECR_REGISTRY}/${ECR_FRONTEND_REPOSITORY}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      API_BASE: ${PUBLIC_API_BASE:-http://localhost:8001}
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  backend-uploads:
+  backend-db:

@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="config.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meridian Tech Store | Electronics, Computers, Office Hardware & Accessories</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --nav-dark: #131921;
+    --nav-sub: #232f3e;
+    --nav-hover: #37475a;
+    --gold: #febd69;
+    --gold-hover: #f3a847;
+    --gold-dark: #d48b16;
+    --orange-cta: #fa8900;
+    --orange-cta-hover: #e37b00;
+    --deal-red: #cc0c39;
+    --deal-badge: #e63946;
+    --ink: #0f1111;
+    --ink-light: #565959;
+    --ink-faint: #888c8c;
+    --bg-page: #eaeded;
+    --card-bg: #ffffff;
+    --border-color: #d5d9d9;
+    --border-subtle: #e7e7e7;
+    --green-success: #067d62;
+    --shadow-card: 0 2px 8px rgba(15,17,17,0.06);
+    --shadow-hover: 0 8px 24px rgba(15,17,17,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--ink);
+    line-height: 1.4;
+    overflow-x: hidden;
+  }
+
+  /* ------------------- HEADER ------------------- */
+  header {
+    background-color: var(--nav-dark);
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+
+  .main-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 18px;
+    min-height: 60px;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: #fff;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    transition: border-color 0.15s ease;
+  }
+  .brand-logo:hover { border-color: #fff; }
+
+  .logo-mark {
+    background: linear-gradient(135deg, #febd69 0%, #fa8900 100%);
+    color: var(--nav-dark);
+    font-weight: 800;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+  .brand-text {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: baseline;
+  }
+  .brand-text span {
+    color: var(--gold);
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 2px;
+  }
+
+  /* Deliver to location */
+  .deliver-to {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.2;
+    transition: border-color 0.15s ease;
+  }
+  .deliver-to:hover { border-color: #fff; }
+  .deliver-to svg { fill: #fff; width: 16px; height: 16px; flex-shrink: 0; }
+  .deliver-line1 { color: #ccc; font-size: 11px; }
+  .deliver-line2 { font-weight: 700; color: #fff; }
+
+  /* Amazon-style unified search */
+  .search-container {
+    flex: 1;
+    display: flex;
+    max-width: 900px;
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .search-container:focus-within {
+    border-color: var(--gold-hover);
+    box-shadow: 0 0 0 3px rgba(254, 189, 105, 0.4);
+  }
+
+  .search-category-select {
+    background: #e6e6e6;
+    border: none;
+    border-right: 1px solid #cdcdcd;
+    color: var(--ink);
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    max-width: 140px;
+  }
+  .search-category-select:hover { background: #dadada; }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    padding: 0 14px;
+    font-size: 14px;
+    outline: none;
+    color: var(--ink);
+    font-family: inherit;
+  }
+
+  .search-btn {
+    background: var(--gold);
+    border: none;
+    width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .search-btn:hover { background: var(--gold-hover); }
+  .search-btn svg { width: 20px; height: 20px; fill: var(--nav-dark); }
+
+  /* Nav Right items */
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-link-block {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+    line-height: 1.25;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .nav-link-block:hover { border-color: #fff; }
+  .nav-sub-text { color: #ccc; font-size: 11px; }
+  .nav-main-text { font-weight: 700; color: #fff; font-size: 13.5px; }
+
+  .cart-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease;
+  }
+  .cart-btn:hover { border-color: #fff; }
+  .cart-icon-wrapper { position: relative; display: flex; align-items: center; }
+  .cart-icon-wrapper svg { width: 32px; height: 32px; fill: #fff; }
+  .cart-count {
+    position: absolute;
+    top: 2px;
+    left: 12px;
+    background: var(--orange-cta);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+  }
+  .cart-label { font-weight: 700; font-size: 14px; margin-top: 6px; }
+
+  /* Sub Header (Categories Bar) */
+  .sub-header {
+    background-color: var(--nav-sub);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 6px 18px;
+    font-size: 13px;
+    color: #fff;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .sub-header::-webkit-scrollbar { display: none; }
+
+  .sub-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .sub-nav-item:hover { border-color: #fff; }
+  .sub-nav-item.highlight { color: var(--gold); font-weight: 700; }
+
+  /* ------------------- HERO CAROUSEL ------------------- */
+  .hero-banner-container {
+    position: relative;
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  .hero-banner {
+    position: relative;
+    height: 320px;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30px 60px;
+    color: #fff;
+    transition: background 0.5s ease;
+  }
+  .hero-content { max-width: 650px; z-index: 2; }
+  .hero-badge {
+    background: var(--gold);
+    color: var(--nav-dark);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 5px 12px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .hero-title {
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+  .hero-subtitle {
+    font-size: 16px;
+    color: #e2e8f0;
+    margin-bottom: 22px;
+  }
+  .hero-btn {
+    background: var(--gold);
+    color: var(--nav-dark);
+    border: none;
+    font-size: 14.5px;
+    font-weight: 700;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .hero-btn:hover {
+    background: var(--gold-hover);
+    transform: translateY(-2px);
+  }
+  .hero-illustration {
+    font-size: 120px;
+    user-select: none;
+    filter: drop-shadow(0 15px 25px rgba(0,0,0,0.3));
+  }
+
+  .hero-gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to bottom, rgba(234, 237, 237, 0) 0%, rgba(234, 237, 237, 1) 100%);
+    pointer-events: none;
+  }
+
+  /* ------------------- STORE MAIN CONTAINER ------------------- */
+  .store-container {
+    max-width: 1500px;
+    margin: -40px auto 40px;
+    padding: 0 20px;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Filter chips bar */
+  .filter-bar {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .category-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .category-pill {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .category-pill:hover {
+    border-color: var(--gold-dark);
+    color: var(--ink);
+  }
+  .category-pill.active {
+    background: var(--nav-sub);
+    border-color: var(--nav-sub);
+    color: #fff;
+  }
+
+  .sort-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-light);
+  }
+  .sort-select {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    font-size: 13px;
+    outline: none;
+    font-family: inherit;
+  }
+
+  /* ------------------- PRODUCT GRID ------------------- */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .product-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+  }
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: #cbd5e1;
+  }
+
+  .deal-tag {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: var(--deal-red);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    z-index: 2;
+  }
+
+  .image-wrapper {
+    width: 100%;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #f8fafc;
+  }
+  .product-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+  }
+  .product-card:hover .product-image { transform: scale(1.05); }
+
+  .product-category-tag {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .product-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .rating-block {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .stars { color: #ffa41c; font-size: 14px; letter-spacing: -1px; }
+  .rating-num { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+  .review-count { font-size: 12px; color: var(--ink-light); }
+
+  /* Pricing */
+  .price-block {
+    margin-bottom: 8px;
+  }
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .discount-pct {
+    color: var(--deal-red);
+    font-size: 18px;
+    font-weight: 400;
+  }
+  .current-price {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .currency-symbol { font-size: 14px; vertical-align: super; }
+  .mrp-row {
+    font-size: 12px;
+    color: var(--ink-light);
+  }
+  .mrp-val { text-decoration: line-through; }
+
+  /* Delivery info */
+  .delivery-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--ink-light);
+    margin-bottom: 16px;
+  }
+  .prime-check {
+    color: #007185;
+    font-weight: 800;
+    font-style: italic;
+  }
+  .delivery-time {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  /* Card action buttons */
+  .card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+  }
+  .btn-add-cart {
+    background: var(--gold);
+    color: var(--ink);
+    border: 1px solid #a88734;
+    border-radius: 20px;
+    padding: 9px 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-add-cart:hover {
+    background: var(--gold-hover);
+  }
+  .btn-add-cart:active { transform: scale(0.98); }
+
+  .btn-buy-now {
+    background: var(--orange-cta);
+    color: #fff;
+    border: 1px solid #b66100;
+    border-radius: 20px;
+    padding: 9px 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .btn-buy-now:hover {
+    background: var(--orange-cta-hover);
+  }
+  .btn-buy-now:active { transform: scale(0.98); }
+
+  /* ------------------- CART DRAWER ------------------- */
+  .cart-drawer-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 2000;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .cart-drawer-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  .cart-drawer {
+    position: fixed;
+    top: 0; right: -450px; bottom: 0;
+    width: 420px;
+    max-width: 90vw;
+    background: #fff;
+    z-index: 2001;
+    box-shadow: -5px 0 25px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cart-drawer.active {
+    right: 0;
+  }
+
+  .cart-drawer-header {
+    background: var(--nav-dark);
+    color: #fff;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cart-drawer-title {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cart-close-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+  .cart-close-btn:hover { background: rgba(255,255,255,0.15); }
+
+  .cart-free-shipping {
+    background: #e6f4ea;
+    color: var(--green-success);
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #ceead6;
+  }
+
+  .cart-items-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+
+  .cart-empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--ink-light);
+  }
+  .cart-empty-state svg { width: 64px; height: 64px; fill: #ccc; margin-bottom: 14px; }
+  .cart-empty-state h3 { font-size: 18px; color: var(--ink); margin-bottom: 6px; }
+
+  .cart-item {
+    display: flex;
+    gap: 14px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .cart-item-img {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #f8fafc;
+  }
+  .cart-item-info { flex: 1; }
+  .cart-item-title { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+  .cart-item-price { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .cart-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .qty-selector {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .qty-btn {
+    background: #f0f2f2;
+    border: none;
+    width: 28px;
+    height: 26px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qty-btn:hover { background: #e3e6e6; }
+  .qty-val { width: 32px; text-align: center; font-size: 13px; font-weight: 600; }
+  .cart-item-delete {
+    background: none;
+    border: none;
+    color: #007185;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .cart-item-delete:hover { color: #c7511f; }
+
+  .cart-drawer-footer {
+    padding: 20px;
+    background: #fdfdfd;
+    border-top: 1px solid var(--border-color);
+  }
+  .subtotal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .subtotal-label { font-size: 15px; color: var(--ink-light); }
+  .subtotal-amt { font-size: 22px; font-weight: 800; color: var(--ink); }
+
+  .btn-checkout {
+    width: 100%;
+    background: var(--gold);
+    color: var(--ink);
+    border: 1px solid #a88734;
+    border-radius: 8px;
+    padding: 13px 0;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .btn-checkout:hover { background: var(--gold-hover); }
+
+  /* ------------------- CHECKOUT MODAL ------------------- */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .checkout-modal {
+    background: #fff;
+    width: 600px;
+    max-width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: modalPop 0.2s ease-out;
+  }
+  @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-header {
+    background: var(--nav-dark);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header h3 { font-size: 18px; font-weight: 700; }
+  .modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+  }
+
+  .modal-body { padding: 24px; }
+  .checkout-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .checkout-section h4 {
+    font-size: 14.5px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .checkout-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: background 0.1s ease;
+  }
+  .radio-label:hover { background: #f8fafc; }
+
+  .order-summary-box {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-top: 14px;
+  }
+  .summary-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13.5px;
+    margin-bottom: 6px;
+    color: var(--ink-light);
+  }
+  .summary-line.total {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--deal-red);
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .btn-place-order {
+    width: 100%;
+    background: var(--orange-cta);
+    color: #fff;
+    border: 1px solid #b66100;
+    border-radius: 8px;
+    padding: 14px 0;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 18px;
+    transition: background 0.15s ease;
+  }
+  .btn-place-order:hover { background: var(--orange-cta-hover); }
+
+  /* Success state */
+  .order-success-card {
+    text-align: center;
+    padding: 30px 10px;
+  }
+  .success-icon {
+    width: 60px;
+    height: 60px;
+    background: #e6f4ea;
+    color: var(--green-success);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 16px;
+  }
+
+  /* ------------------- FOOTER ------------------- */
+  footer {
+    background: var(--nav-sub);
+    color: #fff;
+    margin-top: 60px;
+  }
+  .back-to-top {
+    background: var(--nav-hover);
+    text-align: center;
+    padding: 14px 0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .back-to-top:hover { background: #485769; }
+
+  .footer-columns {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+    padding: 40px 20px;
+  }
+  .footer-col h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+  .footer-col ul { list-style: none; }
+  .footer-col li { margin-bottom: 8px; }
+  .footer-col a {
+    color: #ddd;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  .footer-col a:hover { text-decoration: underline; color: #fff; }
+
+  .footer-bottom {
+    border-top: 1px solid #3a4553;
+    padding: 24px 20px;
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+  }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--nav-dark);
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 4000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .toast-badge {
+    background: var(--green-success);
+    color: #fff;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<!-- ------------------- MAIN HEADER ------------------- -->
+<header>
+  <div class="main-header">
+    <!-- Brand -->
+    <a href="customer_store.html" class="brand-logo" title="Meridian Tech Store">
+      <div class="logo-mark">M</div>
+      <div class="brand-text">meridian<span>.in</span></div>
+    </a>
+
+    <!-- Delivery Location Widget -->
+    <div class="deliver-to" id="deliveryWidget" title="Select delivery location">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      <div>
+        <div class="deliver-line1">Deliver to Mumbai</div>
+        <div class="deliver-line2">400001 - Tech Park</div>
+      </div>
+    </div>
+
+    <!-- Unified Amazon/Flipkart Search Bar -->
+    <div class="search-container">
+      <select class="search-category-select" id="searchCategory">
+        <option value="All">All Categories</option>
+        <option value="Peripherals">Peripherals</option>
+        <option value="Displays & Mounts">Displays & Mounts</option>
+        <option value="Audio & Video">Audio & Video</option>
+        <option value="Networking">Networking</option>
+        <option value="Office Furniture">Office Furniture</option>
+        <option value="Accessories">Accessories</option>
+      </select>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search Meridian Tech products, categories, or brands..." />
+      <button class="search-btn" id="searchBtn" title="Search">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      </button>
+    </div>
+
+    <!-- Nav Right (Auth, Orders, Cart) -->
+    <div class="nav-right">
+      <!-- Account & Sign-in -->
+      <div class="nav-link-block" id="accountBlock" onclick="handleAccountClick()">
+        <span class="nav-sub-text" id="userGreeting">Hello, Sign in</span>
+        <span class="nav-main-text" id="accountActionText">Account & Lists ▾</span>
+      </div>
+
+      <!-- Orders -->
+      <a href="#orders" class="nav-link-block" onclick="alert('Order history is available for registered customer accounts.'); return false;">
+        <span class="nav-sub-text">Returns</span>
+        <span class="nav-main-text">& Orders</span>
+      </a>
+
+      <!-- Shopping Cart Drawer Trigger -->
+      <div class="cart-btn" id="cartBtn" title="View Cart">
+        <div class="cart-icon-wrapper">
+          <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          <span class="cart-count" id="cartCountBadge">0</span>
+        </div>
+        <span class="cart-label">Cart</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub Navigation Bar -->
+  <div class="sub-header">
+    <a class="sub-nav-item" onclick="filterByCategory('All')">☰ All Products</a>
+    <a class="sub-nav-item highlight" onclick="filterByCategory('All')">🔥 Today's Deals</a>
+    <a class="sub-nav-item" onclick="filterByCategory('Peripherals')">Peripherals</a>
+    <a class="sub-nav-item" onclick="filterByCategory('Displays & Mounts')">Monitors & Displays</a>
+    <a class="sub-nav-item" onclick="filterByCategory('Audio & Video')">Audio & Video</a>
+    <a class="sub-nav-item" onclick="filterByCategory('Office Furniture')">Ergonomic Furniture</a>
+    <a class="sub-nav-item" onclick="filterByCategory('Networking')">Networking Gear</a>
+    <a class="sub-nav-item" onclick="filterByCategory('Accessories')">Docks & Cables</a>
+    <span style="flex:1;"></span>
+    <span class="sub-nav-item" style="color:#febd69; font-size:12px;">⚡ FREE Next-Day Delivery with Prime</span>
+    <a href="employee_portal.html" class="sub-nav-item" style="background:rgba(255,255,255,0.12); border-radius:4px; font-weight:700; color:#38bdf8;" title="Finance Staff Access">Internal Staff? Employee Portal →</a>
+  </div>
+</header>
+
+<!-- ------------------- HERO CAROUSEL ------------------- -->
+<div class="hero-banner-container">
+  <div class="hero-banner" id="heroBanner">
+    <div class="hero-content">
+      <span class="hero-badge">Meridian Tech Fest Deals</span>
+      <h1 class="hero-title">Upgrade Your Workspace With Pro Gear</h1>
+      <p class="hero-subtitle">High-performance mechanical keyboards, 4K displays, ergonomic chairs, and USB-C docks up to 35% off.</p>
+      <button class="hero-btn" onclick="document.getElementById('productGrid').scrollIntoView({behavior:'smooth'})">Shop Top Deals Now</button>
+    </div>
+    <div class="hero-illustration">🖥️</div>
+  </div>
+  <div class="hero-gradient-overlay"></div>
+</div>
+
+<!-- ------------------- STORE MAIN CONTAINER ------------------- -->
+<div class="store-container">
+  <!-- Filter & Sort Bar -->
+  <div class="filter-bar">
+    <div class="category-pills" id="categoryPills">
+      <button class="category-pill active" onclick="filterByCategory('All')">All Items</button>
+      <button class="category-pill" onclick="filterByCategory('Peripherals')">Peripherals</button>
+      <button class="category-pill" onclick="filterByCategory('Displays & Mounts')">Displays & Mounts</button>
+      <button class="category-pill" onclick="filterByCategory('Audio & Video')">Audio & Video</button>
+      <button class="category-pill" onclick="filterByCategory('Office Furniture')">Office Furniture</button>
+      <button class="category-pill" onclick="filterByCategory('Networking')">Networking</button>
+      <button class="category-pill" onclick="filterByCategory('Accessories')">Accessories</button>
+    </div>
+
+    <div class="sort-container">
+      <label for="sortSelect">Sort by:</label>
+      <select id="sortSelect" class="sort-select" onchange="handleSortChange()">
+        <option value="featured">Featured</option>
+        <option value="price-low">Price: Low to High</option>
+        <option value="price-high">Price: High to Low</option>
+        <option value="rating">Avg. Customer Review</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Product Catalog Grid -->
+  <div class="product-grid" id="productGrid">
+    <!-- Populated dynamically via GET /api/customer/products -->
+  </div>
+</div>
+
+<!-- ------------------- CART DRAWER ------------------- -->
+<div class="cart-drawer-overlay" id="cartOverlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-drawer-header">
+    <div class="cart-drawer-title">
+      🛒 Shopping Cart (<span id="cartHeaderCount">0</span>)
+    </div>
+    <button class="cart-close-btn" onclick="closeCart()">✕</button>
+  </div>
+
+  <div class="cart-free-shipping">
+    <span>✓</span>
+    <span>Your order qualifies for <strong>FREE Express Delivery</strong></span>
+  </div>
+
+  <div class="cart-items-list" id="cartItemsList">
+    <!-- Rendered dynamically -->
+  </div>
+
+  <div class="cart-drawer-footer">
+    <div class="subtotal-row">
+      <span class="subtotal-label">Subtotal:</span>
+      <span class="subtotal-amt" id="cartSubtotalAmt">$0.00</span>
+    </div>
+    <button class="btn-checkout" onclick="openCheckoutModal()">Proceed to Buy (<span id="checkoutItemCount">0</span> items)</button>
+  </div>
+</div>
+
+<!-- ------------------- CHECKOUT MODAL ------------------- -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="checkout-modal">
+    <div class="modal-header">
+      <h3>Checkout & Order Confirmation</h3>
+      <button class="modal-close" onclick="closeCheckoutModal()">✕</button>
+    </div>
+
+    <div class="modal-body" id="modalBody">
+      <div class="checkout-section">
+        <h4>📍 1. Delivery Address</h4>
+        <p style="font-size:13.5px; color:var(--ink-light);">
+          <strong>Meridian Tech Park</strong>, Suite 402, High-Tech Zone, Mumbai 400001
+        </p>
+      </div>
+
+      <div class="checkout-section">
+        <h4>💳 2. Payment Method</h4>
+        <div class="checkout-radio-group">
+          <label class="radio-label">
+            <input type="radio" name="paymentMethod" value="card" checked />
+            <span>Credit or Debit Card (•••• 4920)</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="paymentMethod" value="upi" />
+            <span>Instant UPI / Google Pay / NetBanking</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="paymentMethod" value="cod" />
+            <span>Pay on Delivery (Cash / UPI at Doorstep)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="order-summary-box">
+        <div class="summary-line">
+          <span>Items Total:</span>
+          <span id="modalItemsTotal">$0.00</span>
+        </div>
+        <div class="summary-line">
+          <span>Delivery & Handling:</span>
+          <span style="color:var(--green-success); font-weight:700;">FREE</span>
+        </div>
+        <div class="summary-line">
+          <span>Estimated Tax:</span>
+          <span id="modalTax">$0.00</span>
+        </div>
+        <div class="summary-line total">
+          <span>Order Total:</span>
+          <span id="modalOrderTotal">$0.00</span>
+        </div>
+      </div>
+
+      <button class="btn-place-order" onclick="placeOrder()">Place Your Order and Pay</button>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------- FOOTER ------------------- -->
+<footer>
+  <div class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+    Back to top
+  </div>
+
+  <div class="footer-columns">
+    <div class="footer-col">
+      <h4>Get to Know Us</h4>
+      <ul>
+        <li><a href="#">About Meridian Tech</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Press Releases</a></li>
+        <li><a href="#">Meridian Science</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Connect with Us</h4>
+      <ul>
+        <li><a href="#">LinkedIn</a></li>
+        <li><a href="#">Twitter / X</a></li>
+        <li><a href="#">GitHub</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Make Money with Us</h4>
+      <ul>
+        <li><a href="#">Sell on Meridian</a></li>
+        <li><a href="#">Supply to Meridian</a></li>
+        <li><a href="#">Become an Affiliate</a></li>
+        <li><a href="#">Fulfillment by Meridian</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Let Us Help You</h4>
+      <ul>
+        <li><a href="#">Your Account</a></li>
+        <li><a href="#">Returns & Replacements</a></li>
+        <li><a href="#">100% Purchase Protection</a></li>
+        <li><a href="#">Help Center</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>© 2026, Meridian Technologies Inc. or its affiliates. All rights reserved.</p>
+    <p style="margin-top:6px; font-size:11px; color:#888;">Designed for retail customers of Meridian OfficeTech.</p>
+  </div>
+</footer>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast">
+  <span class="toast-badge">✓</span>
+  <span id="toastMessage">Added to cart!</span>
+</div>
+
+<!-- ------------------- JAVASCRIPT LOGIC ------------------- -->
+<script>
+  const API_BASE = window.MERIDIAN_API_BASE || "http://localhost:8001";
+
+  let products = [];
+  let currentCategory = "All";
+  let searchQuery = "";
+  let currentSort = "featured";
+
+  // Customer Cart: stored in localStorage for persistence across reloads
+  let cart = JSON.parse(localStorage.getItem("customer_cart") || "[]");
+
+  // Check customer authentication
+  const customerToken = localStorage.getItem("customer_token") || localStorage.getItem("shopmart_token");
+  const customerEmail = localStorage.getItem("customer_email") || localStorage.getItem("shopmart_email");
+
+  // Setup user header state
+  function updateAuthHeader() {
+    const userGreeting = document.getElementById("userGreeting");
+    const accountActionText = document.getElementById("accountActionText");
+
+    if (customerEmail) {
+      const username = customerEmail.split("@")[0];
+      userGreeting.textContent = `Hello, ${username}`;
+      accountActionText.textContent = "Sign Out ▾";
+    } else {
+      userGreeting.textContent = "Hello, Sign in";
+      accountActionText.textContent = "Account & Lists ▾";
+    }
+  }
+
+  function handleAccountClick() {
+    if (customerEmail) {
+      if (confirm(`Signed in as ${customerEmail}.\nDo you want to sign out?`)) {
+        localStorage.removeItem("customer_token");
+        localStorage.removeItem("customer_email");
+        localStorage.removeItem("shopmart_token");
+        localStorage.removeItem("shopmart_email");
+        localStorage.removeItem("user_role");
+        window.location.reload();
+      }
+    } else {
+      window.location.href = "login.html";
+    }
+  }
+
+  // Fetch enriched products from backend
+  async function loadProducts() {
+    try {
+      let url = `${API_BASE}/api/customer/products`;
+      const params = new URLSearchParams();
+      if (currentCategory && currentCategory !== "All") params.append("category", currentCategory);
+      if (searchQuery) params.append("search", searchQuery);
+      if ([...params].length > 0) url += `?${params.toString()}`;
+
+      const res = await fetch(url);
+      if (res.ok) {
+        products = await res.json();
+        sortAndRenderProducts();
+      } else {
+        console.error("Failed to fetch customer products", res.status);
+      }
+    } catch (e) {
+      console.error("Error loading products:", e);
+    }
+  }
+
+  function handleSortChange() {
+    currentSort = document.getElementById("sortSelect").value;
+    sortAndRenderProducts();
+  }
+
+  function sortAndRenderProducts() {
+    let sorted = [...products];
+    if (currentSort === "price-low") {
+      sorted.sort((a, b) => a.price - b.price);
+    } else if (currentSort === "price-high") {
+      sorted.sort((a, b) => b.price - a.price);
+    } else if (currentSort === "rating") {
+      sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+
+    const grid = document.getElementById("productGrid");
+    grid.innerHTML = "";
+
+    if (sorted.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; background:#fff; border-radius:10px;">
+          <div style="font-size:48px; margin-bottom:12px;">🔍</div>
+          <h3 style="font-size:20px; margin-bottom:8px;">No products found</h3>
+          <p style="color:var(--ink-light);">Try selecting another category or clearing your search term.</p>
+        </div>
+      `;
+      return;
+    }
+
+    sorted.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+
+      // Deal tag
+      const dealHtml = p.discount_percent >= 20 ? `<div class="deal-tag">${p.discount_percent}% OFF DEAL</div>` : "";
+
+      // Fallback image if needed
+      const imgUrl = p.image_url || "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=500&auto=format&fit=crop&q=80";
+
+      // Stars
+      const fullStars = Math.floor(p.rating || 4.5);
+      const starStr = "★".repeat(fullStars) + "☆".repeat(5 - fullStars);
+
+      card.innerHTML = `
+        ${dealHtml}
+        <div class="image-wrapper">
+          <img src="${imgUrl}" alt="${p.name}" class="product-image" loading="lazy" />
+        </div>
+        <div>
+          <div class="product-category-tag">${p.category}</div>
+          <h3 class="product-title" title="${p.name}">${p.name}</h3>
+          <div class="rating-block">
+            <span class="stars">${starStr}</span>
+            <span class="rating-num">${(p.rating || 4.5).toFixed(1)}</span>
+            <span class="review-count">(${p.review_count || 120})</span>
+          </div>
+
+          <div class="price-block">
+            <div class="price-row">
+              <span class="discount-pct">-${p.discount_percent}%</span>
+              <span class="current-price"><span class="currency-symbol">$</span>${p.price.toFixed(2)}</span>
+            </div>
+            <div class="mrp-row">
+              M.R.P.: <span class="mrp-val">$${p.original_price.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="delivery-badge">
+            <span class="prime-check">Prime</span>
+            <span>Get it by <span class="delivery-time">${p.delivery_estimate}</span></span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn-add-cart" onclick="addToCart(${p.id})">
+            🛒 Add to Cart
+          </button>
+          <button class="btn-buy-now" onclick="buyNow(${p.id})">
+            ⚡ Buy Now
+          </button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // Category Filter
+  function filterByCategory(cat) {
+    currentCategory = cat;
+    document.getElementById("searchCategory").value = cat;
+
+    // Update pill styling
+    document.querySelectorAll(".category-pill").forEach(pill => {
+      pill.classList.toggle("active", pill.textContent.trim() === (cat === "All" ? "All Items" : cat));
+    });
+
+    loadProducts();
+  }
+
+  // Search logic
+  document.getElementById("searchBtn").addEventListener("click", () => {
+    searchQuery = document.getElementById("searchInput").value.trim();
+    currentCategory = document.getElementById("searchCategory").value;
+    loadProducts();
+  });
+  document.getElementById("searchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      searchQuery = document.getElementById("searchInput").value.trim();
+      currentCategory = document.getElementById("searchCategory").value;
+      loadProducts();
+    }
+  });
+
+  // Cart operations
+  function saveCart() {
+    localStorage.setItem("customer_cart", JSON.stringify(cart));
+    updateCartUI();
+  }
+
+  function addToCart(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const existing = cart.find(item => item.id === productId);
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image_url: product.image_url,
+        qty: 1
+      });
+    }
+
+    saveCart();
+    showToast(`Added "${product.name}" to cart!`);
+  }
+
+  function buyNow(productId) {
+    addToCart(productId);
+    openCart();
+  }
+
+  function updateQty(productId, delta) {
+    const item = cart.find(i => i.id === productId);
+    if (!item) return;
+    item.qty += delta;
+    if (item.qty <= 0) {
+      cart = cart.filter(i => i.id !== productId);
+    }
+    saveCart();
+  }
+
+  function removeFromCart(productId) {
+    cart = cart.filter(i => i.id !== productId);
+    saveCart();
+  }
+
+  function updateCartUI() {
+    const totalCount = cart.reduce((sum, item) => sum + item.qty, 0);
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+    document.getElementById("cartCountBadge").textContent = totalCount;
+    document.getElementById("cartHeaderCount").textContent = totalCount;
+    document.getElementById("checkoutItemCount").textContent = totalCount;
+    document.getElementById("cartSubtotalAmt").textContent = `$${subtotal.toFixed(2)}`;
+
+    const list = document.getElementById("cartItemsList");
+    if (cart.length === 0) {
+      list.innerHTML = `
+        <div class="cart-empty-state">
+          <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          <h3>Your Shopping Cart is empty</h3>
+          <p>Explore deals and add computer gear, displays, or accessories to your cart.</p>
+        </div>
+      `;
+    } else {
+      list.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <img src="${item.image_url || 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=500&auto=format&fit=crop&q=80'}" class="cart-item-img" alt="${item.name}" />
+          <div class="cart-item-info">
+            <div class="cart-item-title">${item.name}</div>
+            <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+            <div class="cart-item-controls">
+              <div class="qty-selector">
+                <button class="qty-btn" onclick="updateQty(${item.id}, -1)">−</button>
+                <span class="qty-val">${item.qty}</span>
+                <button class="qty-btn" onclick="updateQty(${item.id}, 1)">+</button>
+              </div>
+              <button class="cart-item-delete" onclick="removeFromCart(${item.id})">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+  }
+
+  function openCart() {
+    document.getElementById("cartOverlay").classList.add("active");
+    document.getElementById("cartDrawer").classList.add("active");
+  }
+
+  function closeCart() {
+    document.getElementById("cartOverlay").classList.remove("active");
+    document.getElementById("cartDrawer").classList.remove("active");
+  }
+
+  document.getElementById("cartBtn").addEventListener("click", openCart);
+
+  // Checkout modal
+  function openCheckoutModal() {
+    if (cart.length === 0) {
+      alert("Your cart is empty! Add items first.");
+      return;
+    }
+    closeCart();
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const tax = subtotal * 0.08;
+    const total = subtotal + tax;
+
+    document.getElementById("modalItemsTotal").textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById("modalTax").textContent = `$${tax.toFixed(2)}`;
+    document.getElementById("modalOrderTotal").textContent = `$${total.toFixed(2)}`;
+
+    document.getElementById("checkoutModal").classList.add("active");
+  }
+
+  function closeCheckoutModal() {
+    document.getElementById("checkoutModal").classList.remove("active");
+  }
+
+  function placeOrder() {
+    const orderId = "MER-" + Math.floor(100000 + Math.random() * 900000);
+    const modalBody = document.getElementById("modalBody");
+    modalBody.innerHTML = `
+      <div class="order-success-card">
+        <div class="success-icon">✓</div>
+        <h3 style="font-size:22px; color:var(--ink); margin-bottom:8px;">Order Placed Successfully!</h3>
+        <p style="color:var(--ink-light); font-size:14px; margin-bottom:18px;">
+          Thank you for shopping with Meridian Tech. Order <strong>#${orderId}</strong> has been confirmed.
+        </p>
+        <div style="background:#f8fafc; border-radius:8px; padding:14px; text-align:left; font-size:13px; margin-bottom:20px;">
+          <div>📦 <strong>Delivery:</strong> Guaranteed Tomorrow by 11:00 AM</div>
+          <div style="margin-top:4px;">💳 <strong>Payment Status:</strong> Authorized & Verified</div>
+          <div style="margin-top:4px;">✉️ <strong>Confirmation:</strong> Tracking details sent to your email</div>
+        </div>
+        <button class="btn-checkout" onclick="finishOrder()">Continue Shopping</button>
+      </div>
+    `;
+
+    cart = [];
+    saveCart();
+  }
+
+  function finishOrder() {
+    closeCheckoutModal();
+    window.location.reload();
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById("toast");
+    document.getElementById("toastMessage").textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => { toast.classList.remove("show"); }, 2500);
+  }
+
+  function handleCustomerHelpClick() {
+    const role = localStorage.getItem("user_role");
+    if (role === "employee") {
+      window.location.href = "employee_portal.html";
+    } else {
+      alert("Meridian Customer Support:\n\n• Free Express Delivery on orders over $50\n• 30-Day Hassle-Free Returns\n• Enterprise orders & bulk discounts available\n\nAre you a Meridian employee? Sign in via Employee Portal to access the Finance AI Assistant.");
+    }
+  }
+
+  // Initialize
+  updateAuthHeader();
+  updateCartUI();
+  loadProducts();
+</script>
+</body>
+</html>
+

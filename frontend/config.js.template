@@ -1,0 +1,1 @@
+window.MERIDIAN_API_BASE = "${API_BASE}";

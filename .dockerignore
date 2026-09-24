@@ -1,0 +1,9 @@
+.env
+.git
+.gitignore
+__pycache__/
+**/__pycache__/
+*.pyc
+test_*.py
+README.md
+aws_confluence_docs/

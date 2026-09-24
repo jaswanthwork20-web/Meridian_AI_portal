@@ -1,0 +1,65 @@
+[
+  {
+    "page_id": "1343655",
+    "title": "SELF-HELP",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/1343655",
+    "chunk_index": 0,
+    "text": "Description #F4F5F7 In a sentence or two, describe the purpose of this space. Search this Space Filter by Label These are all the labels in use in this space. Select a label to see a list of content the label has been applied to. Recently updated content This list below will automatically update each time somebody in your space creates or updates content. page,whiteboard,database,blog 10 concise true"
+  },
+  {
+    "page_id": "1343730",
+    "title": "Adding a new product to the invoicing catalog",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/1343730",
+    "chunk_index": 0,
+    "text": "Overview This article describes the general request process for onboarding a new product into the invoicing catalog. Steps Submit a product onboarding request with product name, category, and applicable tax code. The Configuration team reviews and adds the product to the master data table. Allow up to 2 business days for the product to appear across all invoicing screens. Note If a newly added product does not appear where expected after this window, raise a support ticket rather than resubmitting the request."
+  },
+  {
+    "page_id": "1441793",
+    "title": "How to raise an invoice for a product",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/1441793",
+    "chunk_index": 0,
+    "text": "Overview This article explains the standard steps to raise an invoice for any product already configured in the system. Steps Go to Invoices > Raise Invoice. Select the product, enter quantity, and choose the correct tax code. Add any remarks if applicable, then click Submit. Confirm the invoice appears under 'My Invoices' with status 'Submitted'."
+  },
+  {
+    "page_id": "1441820",
+    "title": "Invoice approval and submission workflow",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/1441820",
+    "chunk_index": 0,
+    "text": "Overview Once submitted, invoices go through the following stages: Draft, Submitted, Under Review, Approved. Steps Draft invoices can be edited freely. Once submitted, an invoice is locked and routed for review. If rejected, the invoice returns to Draft with reviewer comments."
+  },
+  {
+    "page_id": "1474564",
+    "title": "Understanding tax codes in the invoicing system",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/1474564",
+    "chunk_index": 0,
+    "text": "Overview Tax codes determine how tax is calculated and reported for each invoice, based on GST (Goods and Services Tax) brackets. Current tax brackets GST 5%: Applies to select essential product categories. GST 12%: Applies to standard mid-tier products. GST 18%: The default rate for most catalog items. GST 28% (New Category): Used for newly onboarded product categories. Invoices using this bracket require Remarks explaining the classification, for audit purposes. If you're unsure which code to use Check the product's category listing, or raise a query with the Finance Configuration team."
+  },
+  {
+    "page_id": "1474580",
+    "title": "Troubleshooting: invoice stuck in draft status",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/1474580",
+    "chunk_index": 0,
+    "text": "Problem An invoice remains in Draft status and does not move to Submitted. Steps to resolve Check that all mandatory fields are filled in. Refresh the page and try submitting again. If the issue persists after a refresh, contact support with the invoice ID and a screenshot of any error shown."
+  },
+  {
+    "page_id": "2916354",
+    "title": "Uploading client tax documents",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/2916354",
+    "chunk_index": 0,
+    "text": "Overview Each client may have specific tax documentation on file, such as a tax exemption certificate or GST registration certificate for their jurisdiction. Steps Select the client before uploading their document - documents are tied to the specific client, not the invoice. Upload the relevant certificate in the Tax Document field on the Raise Invoice screen. If you switch to a different client, you must upload that client's own document - a previous client's file does not carry over. Note Missing or mismatched tax documentation may delay invoice approval."
+  },
+  {
+    "page_id": "5341185",
+    "title": "Windows 11 Microphone & Camera Privacy Permissions Troubleshooting",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/5341185",
+    "chunk_index": 0,
+    "text": "Windows 11 Microphone & Camera Privacy Permissions Troubleshooting - Audio & Video / Privacy Settings. Symptoms: Microphone not working in video conferencing apps (Teams, Zoom, Meet), Camera shows black/blocked in video calls, Windows says microphone access is blocked or denied, App says 'We can't access your microphone', Camera privacy indicator shows access is off, Audio routing not working \u2014 can hear but can't be heard, Microphone works in some apps but not others, Windows 11 privacy settings blocking mic or camera, Headset microphone not detected in meeting apps, Camera permission denied by operating system. Step 1: Check Windows Privacy Settings for Microphone. Windows 11 has privacy controls that can block apps from accessing the microphone. These settings are OS-level and must be changed manually through the Windows Settings UI \u2014 they cannot be safely overridden by background scripts as it would violate operating system security policies. 1. Open Windows Settings (Win + I).\n2. Navigate to Privacy & Security > Microphone.\n3. Ensure 'Microphone access' is turned ON.\n4. Ensure 'Let apps access your microphone' is turned ON.\n5. Scroll down and ensure the specific app (Teams, Zoom, etc.) has microphone access enabled.\n6. If using a desktop app, ensure 'Let desktop apps access your microphone' is turned ON at the bottom. Step 2: Check Windows Privacy Settings for Camera. Similar to microphone, Windows 11 has privacy controls for camera access that must be manually configured. 1. Open Windows Settings (Win + I).\n2. Navigate to Privacy & Security > Camera.\n3. Ensure 'Camera access' is turned ON.\n4. Ensure 'Let apps access your camera' is turned ON.\n5. Scroll down and ensure the specific app has camera access enabled.\n6. If using a desktop app, ensure 'Let desktop apps access your camera' is turned ON. Step 3: Check Sound Settings and Default Device. The wrong audio input/output device may be selected as the default, or the microphone volume may be muted. 1. Right-click the speaker icon in the taskbar and select 'Sound settings'.\n2. Under 'Input', check that the correct microphone is selected.\n3. Click on the microphone and ensure the volume is not at 0.\n4. Test the microphone by speaking \u2014 the input level indicator should move.\n5. Under 'Output', verify the correct speakers/headset is selected. Step 4: Run Windows Audio Troubleshooter. Windows has a built-in troubleshooter that can detect and fix common audio problems. 1. Open Windows Settings (Win + I).\n2. Go to System > Troubleshoot > Other troubleshooters.\n3. Find 'Recording Audio' and click 'Run'.\n4. Follow the on-screen instructions.\n5. Restart the affected app after the troubleshooter completes. Step 5: Escalate to L2 Support \u2014 Remote Desktop Session. If the user is unable to navigate Windows privacy settings or the issue persists after manual checks, escalate to a Level 2 support technician who can connect via a secure, time-limited remote desktop session to visually resolve the issue. This step is handled by the AI \u2014 it will create a secure 30-minute remote desktop sharing link for a support technician to connect and resolve the issue visually. Escalation: Issues involving Windows OS-level privacy settings (microphone/camera permissions) and audio routing configurations require visual human intervention. The AI should identify this boundary and open an L2 support ticket with an ephemeral remote desktop sharing link for a technician to resolve the issue."
+  },
+  {
+    "page_id": "5341202",
+    "title": "Zoom Application Troubleshooting Guide",
+    "url": "https://agnishpaul2002.atlassian.net/wiki/spaces/SELFHELP/pages/5341202",
+    "chunk_index": 0,
+    "text": "Zoom Application Troubleshooting Guide - Video Conferencing. Symptoms: Zoom application freezes or becomes unresponsive upon opening, Zoom crashes unexpectedly during or before meetings, Zoom crashes immediately when joining a meeting or starting video, Zoom window turns white or black and closes without an error message, Audio not working in Zoom (can't hear or be heard), Video/camera not working in Zoom or showing blank display, Unable to join Zoom meetings with connection timeout, Zoom is running slow, dropping frames, or lagging severely, Screen sharing fails or causes the application to terminate, Zoom login issues or authentication session tokens corrupted, Zoom updates failing or corrupt installation state, Zoom keeps crashing even after simple restart. Step 1: Clear Zoom Application Cache. Zoom stores session caches, CEF webcache, thumbnails, avatar caches, and local meeting states in AppData\\Local\\Zoom and AppData\\Roaming\\Zoom. Over time or after improper application termination, these files become corrupted, causing instant crashes when Zoom tries to initialize the UI or join meetings. Clearing the cache purges these corrupted temporary files while preserving the core executable, forcing Zoom to rebuild fresh configuration databases on next launch. 1. Close Zoom completely (check the system tray to ensure no background Zoom processes are running).\n2. Press Win+R, type '%appdata%\\Zoom' and press Enter.\n3. Delete the 'data', 'logs', 'report', and 'dump' folders (do not touch 'bin' or 'uninstall' folders).\n4. Press Win+R, type '%localappdata%\\Zoom' and press Enter, then delete 'webcache' and 'temp'.\n5. Also check '%temp%' and remove any temporary files prefixed with 'Zoom'.\n6. Relaunch Zoom and sign back in. Step 2: Clean Reinstall Zoom. If clearing the cache does not resolve the issue, a full clean reinstall removes all Zoom components (including potentially corrupted binaries, DLLs, and registry entries) and installs a fresh copy of the latest version from the Microsoft Store or official package repository. This resolves deep binary corruption, version conflicts, and persistent crashes. 1. Close Zoom completely.\n2. Open Settings > Apps > Installed Apps.\n3. Find 'Zoom' or 'Zoom Workplace', click Uninstall.\n4. After uninstall, delete leftover folders: %appdata%\\Zoom and %localappdata%\\Zoom.\n5. Download and install the latest Zoom Workplace package.\n6. Relaunch Zoom and log in. Step 3: Restart Zoom Application and Background Processes. A hanging ZoomOpener or CptHost process in Task Manager can lock Zoom data files, preventing a new instance from opening properly. 1. Press Ctrl+Shift+Esc to open Task Manager.\n2. Look for any 'Zoom', 'Zoom Meetings', 'ZoomOpener', or 'CptHost' processes.\n3. Select each and click 'End Task'.\n4. Reopen Zoom from the Start Menu. Step 4: Check Network Stability & Firewall. Zoom requires an active and stable network connection with open UDP ports. Packet loss or aggressive proxy filters can cause crashes during the meeting handshake. 1. Test your internet connection by navigating to a web browser.\n2. Run a speed test (minimum 3-5 Mbps recommended for video calls).\n3. If connected to a VPN or proxy, temporarily disconnect and test Zoom directly.\n4. If on Wi-Fi, try connecting to a 5GHz band or ethernet cable. Step 5: Disable Hardware Acceleration in Zoom Video Settings. Incompatible or outdated GPU display drivers frequently cause Zoom to crash or display a black/white screen when opening video. 1. Open Zoom Settings (gear icon in the top right).\n2. Click 'Video' in the left sidebar, then click 'Advanced'.\n3. Uncheck 'Enable hardware acceleration for video processing' and 'Enable hardware acceleration for receiving video'.\n4. Restart Zoom. Step 6: Verify Audio and Camera Privacy Permissions. Windows Privacy Settings can block Zoom from accessing microphones and cameras, which can lead to application crashes when starting meeting media. 1. Open Windows Settings > Privacy & Security.\n2. Under App Permissions, select 'Camera' and ensure 'Let desktop apps access your camera' is enabled for Zoom.\n3. Select 'Microphone' and ensure 'Let desktop apps access your microphone' is enabled for Zoom.\n4. Relaunch Zoom. Escalation: If preliminary troubleshooting, cache clearing, and clean reinstallation do not resolve the issue, escalate to a human Support Engineer for visual remote desktop inspection. The engineer can review Windows Event Viewer logs (Application crash events 1000/1001), inspect driver compatibility, or debug system-level group policies."
+  }
+]
