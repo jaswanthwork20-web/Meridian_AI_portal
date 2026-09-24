@@ -10,10 +10,13 @@ on:
 # AWS_ACCOUNT_ID, AWS_REGION, AWS_ROLE_ARN, EC2_INSTANCE_ID,
 # PUBLIC_API_BASE, ECR_FRONTEND_REPOSITORY, ECR_BACKEND_REPOSITORY.
 env:
-  AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
-  ECR_REGISTRY: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION || 'ap-south-1' }}.amazonaws.com
-  ECR_FRONTEND_REPOSITORY: ${{ vars.ECR_FRONTEND_REPOSITORY || 'meridian-frontend' }}
-  ECR_BACKEND_REPOSITORY: ${{ vars.ECR_BACKEND_REPOSITORY || 'meridian-backend' }}
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: "317492541707"
+
+  ECR_REGISTRY: 317492541707.dkr.ecr.us-east-1.amazonaws.com
+
+  ECR_FRONTEND_REPOSITORY: github-cicd-demo-frontend
+  ECR_BACKEND_REPOSITORY: github-cicd-demo-backend
 
 permissions:
   contents: read
