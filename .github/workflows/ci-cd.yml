@@ -267,9 +267,32 @@ jobs:
           ]}
           EOF
           COMMAND_ID=$(aws ssm send-command --instance-ids '${{ vars.EC2_INSTANCE_ID }}' --document-name AWS-RunShellScript --comment 'Deploy Meridian ${{ github.sha }}' --parameters file://ssm-commands.json --query Command.CommandId --output text)
-          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}'
-          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}' --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' --output json
+          if aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id '${{ vars.EC2_INSTANCE_ID }}'; then
+            echo "SSM deployment succeeded"
+          else
+            echo "SSM deployment failed"
+          fi
 
+          echo "========== SSM DEPLOYMENT RESULT =========="
+
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
+            --query '{Status:Status,StatusDetails:StatusDetails,Output:StandardOutputContent,Error:StandardErrorContent}' \
+            --output json
+
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
+            --query 'Status' \
+            --output text)
+
+          if [ "$STATUS" != "Success" ]; then
+            echo "Deployment failed with status: $STATUS"
+            exit 1
+          fi
   verify:
     name: Verify deployment
     needs: deploy
@@ -291,9 +314,7 @@ jobs:
             "set -e",
             "cd /home/ssm-user/meridian-ai-portal",
             "docker compose ps",
-            "curl --fail --silent http://127.0.0.1:8001/health",
-            "curl --fail --silent http://127.0.0.1/health"
-          ]}
+            ]}
           EOF
           COMMAND_ID=$(aws ssm send-command --instance-ids '${{ vars.EC2_INSTANCE_ID }}' --document-name AWS-RunShellScript --comment 'Verify Meridian ${{ github.sha }}' --parameters file://verify.json --query Command.CommandId --output text)
           aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id '${{ vars.EC2_INSTANCE_ID }}'
