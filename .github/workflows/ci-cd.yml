@@ -234,8 +234,7 @@ jobs:
         run: |
           docker push "$ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:${{ github.sha }}"
           docker push "$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:${{ github.sha }}"
- 
-  deploy:
+    deploy:
     name: Deploy to EC2 with SSM
     needs: push-ecr
     runs-on: ubuntu-latest
@@ -396,7 +395,7 @@ jobs:
 
           echo "=========================================="
           echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
-          echo "==========================================" 
+          echo "=========================================="
     verify:
     name: Verify deployment
     needs: deploy
