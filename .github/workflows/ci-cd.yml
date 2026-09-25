@@ -268,10 +268,10 @@ jobs:
               "pwd",
 
               "export IMAGE_TAG='${{ github.sha }}'",
+              "export AWS_REGION='${{ env.AWS_REGION }}'",
               "export ECR_REGISTRY='${{ env.ECR_REGISTRY }}'",
               "export ECR_FRONTEND_REPOSITORY='${{ env.ECR_FRONTEND_REPOSITORY }}'",
               "export ECR_BACKEND_REPOSITORY='${{ env.ECR_BACKEND_REPOSITORY }}'",
-
               "echo 'Saving current version...'",
               "if [ -f .current_version ]; then cp .current_version .previous_version; fi",
 
