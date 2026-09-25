@@ -33,6 +33,7 @@ python -m uvicorn backend.backend_main:app --reload --port 8001
 In a second terminal, from the repository root:
 ```bash
 python -m http.server 8080 --directory frontend
+
 ```
 
 Open **http://localhost:8080/login.html**. The frontend calls the backend at `http://localhost:8001` by default.
