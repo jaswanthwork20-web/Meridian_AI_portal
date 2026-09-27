@@ -9,7 +9,6 @@ on:
     branches:
       - main
 
-
 # ==================================================
 # GLOBAL ENVIRONMENT
 # ==================================================
@@ -17,9 +16,7 @@ on:
 env:
   AWS_REGION: us-east-1
   AWS_ACCOUNT_ID: "317492541707"
-
   ECR_REGISTRY: 317492541707.dkr.ecr.us-east-1.amazonaws.com
-
   ECR_FRONTEND_REPOSITORY: github-cicd-demo-frontend
   ECR_BACKEND_REPOSITORY: github-cicd-demo-backend
 
@@ -30,12 +27,15 @@ env:
 permissions:
   contents: read
 
-
 # ==================================================
-# 1. PYTHON SYNTAX CHECK
+# JOBS
 # ==================================================
 
 jobs:
+
+  # ==================================================
+  # 1. PYTHON SYNTAX CHECK
+  # ==================================================
 
   syntax:
     name: Python syntax
@@ -54,7 +54,6 @@ jobs:
         working-directory: backend
         run: |
           python -m compileall -q .
-
 
   # ==================================================
   # 2. RUFF LINT
@@ -84,7 +83,6 @@ jobs:
         run: |
           ruff check . || true
 
-
   # ==================================================
   # 3. UNUSED CODE SCAN
   # ==================================================
@@ -112,7 +110,6 @@ jobs:
         working-directory: backend
         run: |
           vulture . --min-confidence 80 || true
-
 
   # ==================================================
   # 4. TYPE CHECK
@@ -142,7 +139,6 @@ jobs:
         working-directory: backend
         run: |
           mypy . || true
-
 
   # ==================================================
   # 5. UNIT TESTS + COVERAGE
@@ -179,9 +175,6 @@ jobs:
             echo "Syntax validation is covered by the syntax job."
           fi
 
-
-
-
   # ==================================================
   # 6. BANDIT SECURITY SCAN
   # ==================================================
@@ -210,7 +203,6 @@ jobs:
         run: |
           bandit -r . -ll || true
 
-
   # ==================================================
   # 7. SECRET DETECTION
   # ==================================================
@@ -229,7 +221,6 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
   # ==================================================
   # 8. DEPENDENCY SCAN
@@ -259,7 +250,6 @@ jobs:
         run: |
           pip-audit -r requirements.txt || true
 
-
   # ==================================================
   # 9. BUILD DOCKER IMAGES
   # ==================================================
@@ -269,6 +259,7 @@ jobs:
   # docker-build-approval
   #
   # Configure required reviewers in:
+  #
   # GitHub
   # → Settings
   # → Environments
@@ -282,16 +273,14 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     needs:
-      [
-        syntax,
-        lint,
-        unused-code,
-        type-check,
-        test,
-        security,
-        secrets,
-        dependency-scan
-      ]
+      - syntax
+      - lint
+      - unused-code
+      - type-check
+      - test
+      - security
+      - secrets
+      - dependency-scan
 
     runs-on: ubuntu-latest
 
@@ -301,7 +290,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
 
       # ----------------------------------------------
       # Build frontend
@@ -313,7 +301,6 @@ jobs:
             -t "$ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:latest" \
             ./frontend
 
-
       # ----------------------------------------------
       # Build backend
       # ----------------------------------------------
@@ -323,7 +310,6 @@ jobs:
           docker build \
             -t "$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:latest" \
             ./backend
-
 
       # ----------------------------------------------
       # Save Docker images
@@ -339,7 +325,6 @@ jobs:
             "$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:latest" \
             -o backend.tar
 
-
       # ----------------------------------------------
       # Upload Docker images
       # ----------------------------------------------
@@ -352,7 +337,6 @@ jobs:
             frontend.tar
             backend.tar
 
-
   # ==================================================
   # 10. DOCKER VULNERABILITY SCAN
   # ==================================================
@@ -364,22 +348,18 @@ jobs:
       - build
 
     runs-on: ubuntu-latest
-
     continue-on-error: true
 
     steps:
-
       - name: Download Docker images
         uses: actions/download-artifact@v4
         with:
           name: container-images
 
-
       - name: Load Docker images
         run: |
           docker load -i frontend.tar
           docker load -i backend.tar
-
 
       # ----------------------------------------------
       # Frontend Trivy scan
@@ -393,7 +373,6 @@ jobs:
           format: table
           exit-code: "0"
 
-
       # ----------------------------------------------
       # Backend Trivy scan
       # ----------------------------------------------
@@ -405,7 +384,6 @@ jobs:
           severity: CRITICAL,HIGH
           format: table
           exit-code: "0"
-
 
   # ==================================================
   # 11. SBOM GENERATION
@@ -420,25 +398,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Download Docker images
         uses: actions/download-artifact@v4
         with:
           name: container-images
-
 
       - name: Load Docker images
         run: |
           docker load -i frontend.tar
           docker load -i backend.tar
 
-
       - name: Install Syft
         run: |
           curl -sSfL \
             https://raw.githubusercontent.com/anchore/syft/main/install.sh \
             | sh -s -- -b /usr/local/bin
-
 
       # ----------------------------------------------
       # Frontend SBOM
@@ -450,7 +424,6 @@ jobs:
             "${ECR_REGISTRY}/${ECR_FRONTEND_REPOSITORY}:latest" \
             -o cyclonedx-json=frontend-sbom.json
 
-
       # ----------------------------------------------
       # Backend SBOM
       # ----------------------------------------------
@@ -461,13 +434,11 @@ jobs:
             "${ECR_REGISTRY}/${ECR_BACKEND_REPOSITORY}:latest" \
             -o cyclonedx-json=backend-sbom.json
 
-
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: "*-sbom.json"
-
 
   # ==================================================
   # 12. PUSH IMAGES TO ECR
@@ -487,18 +458,15 @@ jobs:
       id-token: write
 
     steps:
-
       - name: Download Docker images
         uses: actions/download-artifact@v4
         with:
           name: container-images
 
-
       - name: Load Docker images
         run: |
           docker load -i frontend.tar
           docker load -i backend.tar
-
 
       # ----------------------------------------------
       # AWS authentication
@@ -510,14 +478,12 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-
       # ----------------------------------------------
       # ECR login
       # ----------------------------------------------
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
-
 
       # ----------------------------------------------
       # Push latest images
@@ -526,15 +492,16 @@ jobs:
       - name: Push images
         run: |
           echo "Pushing frontend:latest..."
+
           docker push \
             "$ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:latest"
 
           echo "Pushing backend:latest..."
+
           docker push \
             "$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:latest"
 
           echo "Images pushed successfully."
-
 
   # ==================================================
   # 13. DEPLOY TO EC2 USING SSM
@@ -564,7 +531,6 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-
       # ----------------------------------------------
       # Deploy using SSM
       # ----------------------------------------------
@@ -572,84 +538,53 @@ jobs:
       - name: Deploy latest release
         shell: bash
         run: |
-
           set -euo pipefail
 
           echo "=========================================="
           echo "STARTING SSM DEPLOYMENT"
           echo "=========================================="
 
-
           # ----------------------------------------
           # Create SSM command JSON
           # ----------------------------------------
 
-          cat > ssm-commands.json <<EOF
+          cat > ssm-commands.json <<'EOF'
           {
             "commands": [
-
               "set -e",
-
               "echo '=========================================='",
               "echo 'STARTING DEPLOYMENT'",
               "echo '=========================================='",
-
               "cd /home/ssm-user/meridian-ai-portal",
-
               "echo 'Current directory:'",
               "pwd",
-
               "echo 'Checking required files...'",
               "test -f docker-compose.yml",
               "test -f .env",
-
               "echo 'Saving current image digests for rollback...'",
-
               "if docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPOSITORY }}:latest' >/dev/null 2>&1; then docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPOSITORY }}:latest' --format '{{index .RepoDigests 0}}' > .previous_backend_digest || true; fi",
-
               "if docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest' >/dev/null 2>&1; then docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest' --format '{{index .RepoDigests 0}}' > .previous_frontend_digest || true; fi",
-
               "echo 'AWS Region: ${{ env.AWS_REGION }}'",
               "echo 'ECR Registry: ${{ env.ECR_REGISTRY }}'",
               "echo 'Backend repository: ${{ env.ECR_BACKEND_REPOSITORY }}'",
               "echo 'Frontend repository: ${{ env.ECR_FRONTEND_REPOSITORY }}'",
-
-
               "echo 'Logging in to Amazon ECR...'",
-
               "aws ecr get-login-password --region '${{ env.AWS_REGION }}' | docker login --username AWS --password-stdin '${{ env.ECR_REGISTRY }}'",
-
-
               "echo 'Pulling latest Docker images...'",
-
               "docker compose pull",
-
-
               "echo 'Starting latest Docker containers...'",
-
               "docker compose up -d",
-
-
               "echo 'Waiting for containers to initialize...'",
-
               "sleep 10",
-
-
               "echo 'Docker container status:'",
-
               "docker compose ps",
-
-
               "echo 'Deployment completed successfully.'",
-
               "echo '=========================================='",
               "echo 'DEPLOYMENT SUCCESSFUL'",
               "echo '=========================================='"
-
             ]
           }
           EOF
-
 
           echo "=========================================="
           echo "SSM COMMAND JSON"
@@ -657,96 +592,76 @@ jobs:
 
           cat ssm-commands.json
 
-
           echo "=========================================="
           echo "SENDING COMMAND TO EC2"
           echo "=========================================="
 
-
           COMMAND_ID=$(aws ssm send-command \
-            --instance-ids '${{ vars.EC2_INSTANCE_ID }}' \
+            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
             --document-name AWS-RunShellScript \
             --comment "Deploy Meridian latest" \
             --parameters file://ssm-commands.json \
             --query 'Command.CommandId' \
             --output text)
 
-
           echo "SSM Command ID: $COMMAND_ID"
-
 
           echo "=========================================="
           echo "WAITING FOR DEPLOYMENT"
           echo "=========================================="
 
-
           STATUS="Pending"
-
 
           for i in {1..60}; do
 
             STATUS=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
-              --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
+              --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
               --query 'Status' \
               --output text)
 
             echo "[$i/60] SSM Status: $STATUS"
 
-
             case "$STATUS" in
 
               Success)
-
                 echo "=========================================="
                 echo "SSM DEPLOYMENT SUCCEEDED"
                 echo "=========================================="
-
                 break
                 ;;
 
-
               Failed|Cancelled|TimedOut|Cancelling)
-
                 echo "=========================================="
                 echo "SSM DEPLOYMENT FAILED"
                 echo "Status: $STATUS"
                 echo "=========================================="
-
                 break
                 ;;
 
-
               Pending|InProgress)
-
                 if [ "$i" -lt 60 ]; then
                   echo "Deployment still running..."
                   sleep 10
                 fi
-
                 ;;
 
-
               *)
-
                 echo "Unknown SSM status: $STATUS"
                 sleep 10
-
                 ;;
 
             esac
 
           done
 
-
           echo "=========================================="
           echo "SSM DEPLOYMENT RESULT"
           echo "=========================================="
 
-
           aws ssm get-command-invocation \
             --command-id "$COMMAND_ID" \
-            --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
             --query '{
               Status:Status,
               StatusDetails:StatusDetails,
@@ -755,170 +670,206 @@ jobs:
             }' \
             --output json
 
-
           STATUS=$(aws ssm get-command-invocation \
             --command-id "$COMMAND_ID" \
-            --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
             --query 'Status' \
             --output text)
 
-
           echo "Final SSM status: $STATUS"
 
-
           if [ "$STATUS" != "Success" ]; then
-
             echo "=========================================="
             echo "DEPLOYMENT FAILED"
             echo "Final status: $STATUS"
             echo "=========================================="
-
             exit 1
-
           fi
-
 
           echo "=========================================="
           echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
           echo "=========================================="
 
-
   # ==================================================
   # 14. VERIFY DEPLOYMENT
   # ==================================================
 
-  - name: Verify deployment
-  shell: bash
-  run: |
-    set -euo pipefail
+  verify:
+    name: Verify deployment
 
-    echo "=========================================="
-    echo "STARTING DEPLOYMENT VERIFICATION"
-    echo "=========================================="
+    needs:
+      - deploy
 
-    cat > verify.json <<'EOF'
-    {
-      "commands": [
-        "set -e",
-        "cd /home/ssm-user/meridian-ai-portal",
-        "echo '=========================================='",
-        "echo 'DOCKER COMPOSE STATUS'",
-        "echo '=========================================='",
-        "docker compose ps",
-        "echo 'Checking backend container...'",
-        "docker compose ps --status running --services | grep -qx backend",
-        "echo 'Backend container is running.'",
-        "echo 'Checking frontend container...'",
-        "docker compose ps --status running --services | grep -qx frontend",
-        "echo 'Frontend container is running.'",
-        "echo 'Checking backend health...'",
-        "docker compose exec -T backend python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\"",
-        "echo 'Backend health check passed.'",
-        "echo 'Checking frontend health...'",
-        "docker compose exec -T frontend wget --spider --quiet http://127.0.0.1/health",
-        "echo 'Frontend health check passed.'",
-        "echo '=========================================='",
-        "echo 'DEPLOYMENT VERIFICATION SUCCESSFUL'",
-        "echo '=========================================='"
-      ]
-    }
-    EOF
+    runs-on: ubuntu-latest
 
-    echo "=========================================="
-    echo "VERIFY JSON"
-    echo "=========================================="
+    permissions:
+      contents: read
+      id-token: write
 
-    cat verify.json
+    steps:
 
-    echo "=========================================="
-    echo "VALIDATING JSON"
-    echo "=========================================="
+      # ----------------------------------------------
+      # AWS authentication
+      # ----------------------------------------------
 
-    python3 -m json.tool verify.json > /dev/null
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    echo "verify.json is valid JSON."
+      # ----------------------------------------------
+      # Verification
+      # ----------------------------------------------
 
-    echo "=========================================="
-    echo "SENDING VERIFICATION COMMAND TO EC2"
-    echo "=========================================="
-
-    COMMAND_ID=$(aws ssm send-command \
-      --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
-      --document-name "AWS-RunShellScript" \
-      --comment "Verify Meridian latest deployment" \
-      --parameters file://verify.json \
-      --region "${AWS_REGION}" \
-      --query "Command.CommandId" \
-      --output text)
-
-    echo "Verification Command ID: $COMMAND_ID"
-
-    STATUS="Pending"
-
-    for i in {1..30}; do
-
-      STATUS=$(aws ssm get-command-invocation \
-        --command-id "$COMMAND_ID" \
-        --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
-        --region "${AWS_REGION}" \
-        --query "Status" \
-        --output text)
-
-      echo "[$i/30] Verification status: $STATUS"
-
-      case "$STATUS" in
-
-        Success)
+      - name: Verify deployment
+        shell: bash
+        run: |
+          set -euo pipefail
 
           echo "=========================================="
-          echo "VERIFICATION SUCCEEDED"
+          echo "STARTING DEPLOYMENT VERIFICATION"
           echo "=========================================="
+
+          cat > verify.json <<'EOF'
+          {
+            "commands": [
+              "set -e",
+              "cd /home/ssm-user/meridian-ai-portal",
+              "echo '=========================================='",
+              "echo 'DOCKER COMPOSE STATUS'",
+              "echo '=========================================='",
+              "docker compose ps",
+              "echo 'Checking backend container...'",
+              "docker compose ps --status running --services | grep -qx backend",
+              "echo 'Backend container is running.'",
+              "echo 'Checking frontend container...'",
+              "docker compose ps --status running --services | grep -qx frontend",
+              "echo 'Frontend container is running.'",
+              "echo 'Checking backend health...'",
+              "docker compose exec -T backend python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\"",
+              "echo 'Backend health check passed.'",
+              "echo 'Checking frontend health...'",
+              "docker compose exec -T frontend wget --spider --quiet http://127.0.0.1/health",
+              "echo 'Frontend health check passed.'",
+              "echo '=========================================='",
+              "echo 'DEPLOYMENT VERIFICATION SUCCESSFUL'",
+              "echo '=========================================='"
+            ]
+          }
+          EOF
+
+          echo "=========================================="
+          echo "VERIFY JSON"
+          echo "=========================================="
+
+          cat verify.json
+
+          echo "=========================================="
+          echo "VALIDATING JSON"
+          echo "=========================================="
+
+          python3 -m json.tool verify.json > /dev/null
+
+          echo "verify.json is valid JSON."
+
+          echo "=========================================="
+          echo "SENDING VERIFICATION COMMAND TO EC2"
+          echo "=========================================="
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Verify Meridian latest deployment" \
+            --parameters file://verify.json \
+            --region "${AWS_REGION}" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "Verification Command ID: $COMMAND_ID"
+
+          STATUS="Pending"
+
+          for i in {1..30}; do
+
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+              --region "${AWS_REGION}" \
+              --query "Status" \
+              --output text)
+
+            echo "[$i/30] Verification status: $STATUS"
+
+            case "$STATUS" in
+
+              Success)
+
+                echo "=========================================="
+                echo "VERIFICATION SUCCEEDED"
+                echo "=========================================="
+
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+                  --region "${AWS_REGION}" \
+                  --query "StandardOutputContent" \
+                  --output text
+
+                exit 0
+                ;;
+
+              Failed|Cancelled|TimedOut|Cancelling)
+
+                echo "=========================================="
+                echo "VERIFICATION FAILED"
+                echo "=========================================="
+
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+                  --region "${AWS_REGION}" \
+                  --query '{
+                    Status:Status,
+                    Output:StandardOutputContent,
+                    Error:StandardErrorContent
+                  }' \
+                  --output json
+
+                exit 1
+                ;;
+
+              Pending|InProgress)
+
+                if [ "$i" -lt 30 ]; then
+                  sleep 10
+                fi
+                ;;
+
+              *)
+
+                echo "Unknown verification status: $STATUS"
+                sleep 10
+                ;;
+
+            esac
+
+          done
+
+          echo "Verification timed out."
 
           aws ssm get-command-invocation \
             --command-id "$COMMAND_ID" \
             --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
             --region "${AWS_REGION}" \
-            --query "StandardOutputContent" \
-            --output text
-
-          exit 0
-          ;;
-
-        Failed|Cancelled|TimedOut|Cancelling)
-
-          echo "=========================================="
-          echo "VERIFICATION FAILED"
-          echo "=========================================="
-
-          aws ssm get-command-invocation \
-            --command-id "$COMMAND_ID" \
-            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
-            --region "${AWS_REGION}" \
-            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+            --query '{
+              Status:Status,
+              Output:StandardOutputContent,
+              Error:StandardErrorContent
+            }' \
             --output json
 
           exit 1
-          ;;
-
-        *)
-
-          sleep 10
-          ;;
-
-      esac
-
-    done
-
-    echo "Verification timed out."
-
-    aws ssm get-command-invocation \
-      --command-id "$COMMAND_ID" \
-      --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
-      --region "${AWS_REGION}" \
-      --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
-      --output json
-
-    exit 1
 
   # ==================================================
   # 15. ROLLBACK
@@ -964,7 +915,6 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-
       # ==================================================
       # START ROLLBACK
       # ==================================================
@@ -972,14 +922,13 @@ jobs:
       - name: Start rollback
         shell: bash
         run: |
-
           set -euo pipefail
 
           echo "=========================================="
           echo "STARTING ROLLBACK"
           echo "=========================================="
 
-          echo "EC2 Instance: ${EC2_INSTANCE_ID}"
+          echo "EC2 Instance: ${{ vars.EC2_INSTANCE_ID }}"
           echo "AWS Region: ${AWS_REGION}"
           echo "ECR Registry: ${ECR_REGISTRY}"
 
@@ -994,138 +943,86 @@ jobs:
               "echo '=========================================='",
               "echo 'ROLLBACK STARTED'",
               "echo '=========================================='",
-
               "cd /home/ssm-user/meridian-ai-portal",
-
               "echo 'Current directory:'",
               "pwd",
-
               "echo '=========================================='",
               "echo 'CHECKING DOCKER COMPOSE FILE'",
               "echo '=========================================='",
-
               "test -f docker-compose.yml",
-
               "echo 'docker-compose.yml found.'",
-
               "echo '=========================================='",
               "echo 'CHECKING PREVIOUS IMAGE DIGESTS'",
               "echo '=========================================='",
-
               "if [ ! -s .previous_backend_digest ]; then echo 'ERROR: .previous_backend_digest does not exist or is empty.'; exit 1; fi",
-
               "if [ ! -s .previous_frontend_digest ]; then echo 'ERROR: .previous_frontend_digest does not exist or is empty.'; exit 1; fi",
-
               "PREVIOUS_BACKEND_IMAGE=$(cat .previous_backend_digest)",
-
               "PREVIOUS_FRONTEND_IMAGE=$(cat .previous_frontend_digest)",
-
               "echo 'Previous backend image:'",
-
               "echo \"$PREVIOUS_BACKEND_IMAGE\"",
-
               "echo 'Previous frontend image:'",
-
               "echo \"$PREVIOUS_FRONTEND_IMAGE\"",
-
               "echo '=========================================='",
               "echo 'LOGGING INTO AMAZON ECR'",
               "echo '=========================================='",
-
               "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 317492541707.dkr.ecr.us-east-1.amazonaws.com",
-
               "echo 'ECR login successful.'",
-
               "echo '=========================================='",
               "echo 'PULLING PREVIOUS BACKEND IMAGE'",
               "echo '=========================================='",
-
               "docker pull \"$PREVIOUS_BACKEND_IMAGE\"",
-
               "echo 'Previous backend image pulled successfully.'",
-
               "echo '=========================================='",
               "echo 'PULLING PREVIOUS FRONTEND IMAGE'",
               "echo '=========================================='",
-
               "docker pull \"$PREVIOUS_FRONTEND_IMAGE\"",
-
               "echo 'Previous frontend image pulled successfully.'",
-
               "echo '=========================================='",
               "echo 'RESTORING PREVIOUS BACKEND IMAGE'",
               "echo '=========================================='",
-
               "docker tag \"$PREVIOUS_BACKEND_IMAGE\" 317492541707.dkr.ecr.us-east-1.amazonaws.com/github-cicd-demo-backend:latest",
-
               "echo 'Previous backend image tagged as latest.'",
-
               "echo '=========================================='",
               "echo 'RESTORING PREVIOUS FRONTEND IMAGE'",
               "echo '=========================================='",
-
               "docker tag \"$PREVIOUS_FRONTEND_IMAGE\" 317492541707.dkr.ecr.us-east-1.amazonaws.com/github-cicd-demo-frontend:latest",
-
               "echo 'Previous frontend image tagged as latest.'",
-
               "echo '=========================================='",
               "echo 'STOPPING CURRENT DEPLOYMENT'",
               "echo '=========================================='",
-
               "docker compose down",
-
               "echo 'Current deployment stopped.'",
-
               "echo '=========================================='",
               "echo 'STARTING PREVIOUS DEPLOYMENT'",
               "echo '=========================================='",
-
               "docker compose up -d --no-build",
-
               "echo 'Rollback containers started.'",
-
               "echo 'Waiting for containers to initialize...'",
-
               "sleep 15",
-
               "echo '=========================================='",
               "echo 'ROLLBACK CONTAINER STATUS'",
               "echo '=========================================='",
-
               "docker compose ps",
-
               "echo '=========================================='",
               "echo 'CHECKING BACKEND CONTAINER'",
               "echo '=========================================='",
-
               "docker compose ps --status running --services | grep -qx backend",
-
               "echo 'Backend container is running.'",
-
               "echo '=========================================='",
               "echo 'CHECKING FRONTEND CONTAINER'",
               "echo '=========================================='",
-
               "docker compose ps --status running --services | grep -qx frontend",
-
               "echo 'Frontend container is running.'",
-
               "echo '=========================================='",
               "echo 'CHECKING BACKEND HEALTH'",
               "echo '=========================================='",
-
               "docker compose exec -T backend python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\"",
-
               "echo 'Backend health check passed.'",
-
               "echo '=========================================='",
               "echo 'CHECKING FRONTEND HEALTH'",
               "echo '=========================================='",
-
               "docker compose exec -T frontend wget --spider --quiet http://127.0.0.1/health",
-
               "echo 'Frontend health check passed.'",
-
               "echo '=========================================='",
               "echo 'ROLLBACK COMPLETED SUCCESSFULLY'",
               "echo '=========================================='"
@@ -1152,7 +1049,7 @@ jobs:
           echo "=========================================="
 
           COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "${EC2_INSTANCE_ID}" \
+            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --comment "Rollback Meridian deployment" \
             --parameters file://rollback.json \
@@ -1170,7 +1067,7 @@ jobs:
 
             STATUS=$(aws ssm get-command-invocation \
               --command-id "${COMMAND_ID}" \
-              --instance-id "${EC2_INSTANCE_ID}" \
+              --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
               --region "${AWS_REGION}" \
               --query "Status" \
               --output text)
@@ -1189,7 +1086,7 @@ jobs:
 
                 aws ssm get-command-invocation \
                   --command-id "${COMMAND_ID}" \
-                  --instance-id "${EC2_INSTANCE_ID}" \
+                  --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
                   --region "${AWS_REGION}" \
                   --query "StandardOutputContent" \
                   --output text
@@ -1200,7 +1097,6 @@ jobs:
 
                 exit 0
                 ;;
-
 
               Failed|Cancelled|TimedOut|Cancelling)
 
@@ -1216,7 +1112,7 @@ jobs:
 
                 aws ssm get-command-invocation \
                   --command-id "${COMMAND_ID}" \
-                  --instance-id "${EC2_INSTANCE_ID}" \
+                  --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
                   --region "${AWS_REGION}" \
                   --query "StandardOutputContent" \
                   --output text || true
@@ -1227,7 +1123,7 @@ jobs:
 
                 aws ssm get-command-invocation \
                   --command-id "${COMMAND_ID}" \
-                  --instance-id "${EC2_INSTANCE_ID}" \
+                  --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
                   --region "${AWS_REGION}" \
                   --query "StandardErrorContent" \
                   --output text || true
@@ -1239,7 +1135,6 @@ jobs:
                 exit 1
                 ;;
 
-
               Pending|InProgress)
 
                 if [ "${i}" -lt 60 ]; then
@@ -1247,7 +1142,6 @@ jobs:
                   sleep 10
                 fi
                 ;;
-
 
               *)
 
@@ -1269,7 +1163,7 @@ jobs:
 
           aws ssm get-command-invocation \
             --command-id "${COMMAND_ID}" \
-            --instance-id "${EC2_INSTANCE_ID}" \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
             --region "${AWS_REGION}" \
             --query '{
               Status:Status,
