@@ -787,159 +787,138 @@ jobs:
   # 14. VERIFY DEPLOYMENT
   # ==================================================
 
-  verify:
-    name: Verify deployment
+  - name: Verify deployment
+  shell: bash
+  run: |
+    set -euo pipefail
 
-    needs:
-      - deploy
+    echo "=========================================="
+    echo "STARTING DEPLOYMENT VERIFICATION"
+    echo "=========================================="
 
-    runs-on: ubuntu-latest
+    cat > verify.json <<'EOF'
+    {
+      "commands": [
+        "set -e",
+        "cd /home/ssm-user/meridian-ai-portal",
+        "echo '=========================================='",
+        "echo 'DOCKER COMPOSE STATUS'",
+        "echo '=========================================='",
+        "docker compose ps",
+        "echo 'Checking backend container...'",
+        "docker compose ps --status running --services | grep -qx backend",
+        "echo 'Backend container is running.'",
+        "echo 'Checking frontend container...'",
+        "docker compose ps --status running --services | grep -qx frontend",
+        "echo 'Frontend container is running.'",
+        "echo 'Checking backend health...'",
+        "docker compose exec -T backend python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\"",
+        "echo 'Backend health check passed.'",
+        "echo 'Checking frontend health...'",
+        "docker compose exec -T frontend wget --spider --quiet http://127.0.0.1/health",
+        "echo 'Frontend health check passed.'",
+        "echo '=========================================='",
+        "echo 'DEPLOYMENT VERIFICATION SUCCESSFUL'",
+        "echo '=========================================='"
+      ]
+    }
+    EOF
 
-    permissions:
-      contents: read
-      id-token: write
+    echo "=========================================="
+    echo "VERIFY JSON"
+    echo "=========================================="
 
-    steps:
+    cat verify.json
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+    echo "=========================================="
+    echo "VALIDATING JSON"
+    echo "=========================================="
 
+    python3 -m json.tool verify.json > /dev/null
 
-      - name: Verify EC2 deployment
-        shell: bash
-        run: |
+    echo "verify.json is valid JSON."
 
-          set -euo pipefail
+    echo "=========================================="
+    echo "SENDING VERIFICATION COMMAND TO EC2"
+    echo "=========================================="
+
+    COMMAND_ID=$(aws ssm send-command \
+      --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
+      --document-name "AWS-RunShellScript" \
+      --comment "Verify Meridian latest deployment" \
+      --parameters file://verify.json \
+      --region "${AWS_REGION}" \
+      --query "Command.CommandId" \
+      --output text)
+
+    echo "Verification Command ID: $COMMAND_ID"
+
+    STATUS="Pending"
+
+    for i in {1..30}; do
+
+      STATUS=$(aws ssm get-command-invocation \
+        --command-id "$COMMAND_ID" \
+        --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+        --region "${AWS_REGION}" \
+        --query "Status" \
+        --output text)
+
+      echo "[$i/30] Verification status: $STATUS"
+
+      case "$STATUS" in
+
+        Success)
 
           echo "=========================================="
-          echo "STARTING DEPLOYMENT VERIFICATION"
+          echo "VERIFICATION SUCCEEDED"
           echo "=========================================="
 
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+            --region "${AWS_REGION}" \
+            --query "StandardOutputContent" \
+            --output text
 
-          cat > verify.json <<EOF
-          {
-            "commands": [
+          exit 0
+          ;;
 
-              "set -e",
+        Failed|Cancelled|TimedOut|Cancelling)
 
-              "cd /home/ssm-user/meridian-ai-portal",
+          echo "=========================================="
+          echo "VERIFICATION FAILED"
+          echo "=========================================="
 
-              "echo 'Docker Compose status:'",
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+            --region "${AWS_REGION}" \
+            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+            --output json
 
-              "docker compose ps",
+          exit 1
+          ;;
 
+        *)
 
-              "echo 'Checking backend container...'",
+          sleep 10
+          ;;
 
-              "test \\$(docker compose ps -q backend | wc -l) -eq 1",
+      esac
 
+    done
 
-              "echo 'Checking frontend container...'",
+    echo "Verification timed out."
 
-              "test \\$(docker compose ps -q frontend | wc -l) -eq 1",
+    aws ssm get-command-invocation \
+      --command-id "$COMMAND_ID" \
+      --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+      --region "${AWS_REGION}" \
+      --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+      --output json
 
-
-              "echo 'Checking backend health...'",
-
-              "docker compose exec -T backend python -c \\\"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\\\"",
-
-
-              "echo 'Backend health check passed.'",
-
-
-              "echo 'Checking frontend health...'",
-
-              "docker compose exec -T frontend wget --spider --quiet http://127.0.0.1/health",
-
-
-              "echo 'Frontend health check passed.'",
-
-
-              "echo 'Deployment verification completed successfully.'"
-
-            ]
-          }
-          EOF
-
-
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids '${{ vars.EC2_INSTANCE_ID }}' \
-            --document-name AWS-RunShellScript \
-            --comment "Verify Meridian latest" \
-            --parameters file://verify.json \
-            --query 'Command.CommandId' \
-            --output text)
-
-
-          echo "Verification Command ID: $COMMAND_ID"
-
-
-          STATUS="Pending"
-
-
-          for i in {1..30}; do
-
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
-              --query 'Status' \
-              --output text)
-
-            echo "[$i/30] Verification status: $STATUS"
-
-
-            case "$STATUS" in
-
-              Success)
-
-                echo "=========================================="
-                echo "VERIFICATION SUCCEEDED"
-                echo "=========================================="
-
-                aws ssm get-command-invocation \
-                  --command-id "$COMMAND_ID" \
-                  --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
-                  --query 'StandardOutputContent' \
-                  --output text
-
-                break
-                ;;
-
-
-              Failed|Cancelled|TimedOut|Cancelling)
-
-                echo "=========================================="
-                echo "VERIFICATION FAILED"
-                echo "=========================================="
-
-
-                aws ssm get-command-invocation \
-                  --command-id "$COMMAND_ID" \
-                  --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
-                  --query '{
-                    Status:Status,
-                    Output:StandardOutputContent,
-                    Error:StandardErrorContent
-                  }' \
-                  --output json
-
-
-                exit 1
-                ;;
-
-
-              *)
-
-                sleep 10
-                ;;
-
-            esac
-
-          done
-
+    exit 1
 
   # ==================================================
   # 15. ROLLBACK
@@ -975,6 +954,10 @@ jobs:
 
     steps:
 
+      # ==================================================
+      # CONFIGURE AWS
+      # ==================================================
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
@@ -982,7 +965,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
 
-      - name: Roll back to previous image
+      # ==================================================
+      # START ROLLBACK
+      # ==================================================
+
+      - name: Start rollback
         shell: bash
         run: |
 
@@ -992,124 +979,205 @@ jobs:
           echo "STARTING ROLLBACK"
           echo "=========================================="
 
+          echo "EC2 Instance: ${EC2_INSTANCE_ID}"
+          echo "AWS Region: ${AWS_REGION}"
+          echo "ECR Registry: ${ECR_REGISTRY}"
 
-          cat > rollback.json <<EOF
+          # ------------------------------------------------
+          # Create rollback SSM command
+          # ------------------------------------------------
+
+          cat > rollback.json <<'EOF'
           {
             "commands": [
-
               "set -e",
+              "echo '=========================================='",
+              "echo 'ROLLBACK STARTED'",
+              "echo '=========================================='",
 
               "cd /home/ssm-user/meridian-ai-portal",
 
+              "echo 'Current directory:'",
+              "pwd",
 
-              "echo 'Checking rollback digests...'",
+              "echo '=========================================='",
+              "echo 'CHECKING DOCKER COMPOSE FILE'",
+              "echo '=========================================='",
 
-              "test -s .previous_backend_digest",
-              "test -s .previous_frontend_digest",
+              "test -f docker-compose.yml",
 
+              "echo 'docker-compose.yml found.'",
 
-              "export AWS_REGION='${{ env.AWS_REGION }}'",
-              "export ECR_REGISTRY='${{ env.ECR_REGISTRY }}'",
-              "export ECR_BACKEND_REPOSITORY='${{ env.ECR_BACKEND_REPOSITORY }}'",
-              "export ECR_FRONTEND_REPOSITORY='${{ env.ECR_FRONTEND_REPOSITORY }}'",
+              "echo '=========================================='",
+              "echo 'CHECKING PREVIOUS IMAGE DIGESTS'",
+              "echo '=========================================='",
 
+              "if [ ! -s .previous_backend_digest ]; then echo 'ERROR: .previous_backend_digest does not exist or is empty.'; exit 1; fi",
 
-              "export PREVIOUS_BACKEND_IMAGE=$(cat .previous_backend_digest)",
-              "export PREVIOUS_FRONTEND_IMAGE=$(cat .previous_frontend_digest)",
+              "if [ ! -s .previous_frontend_digest ]; then echo 'ERROR: .previous_frontend_digest does not exist or is empty.'; exit 1; fi",
 
+              "PREVIOUS_BACKEND_IMAGE=$(cat .previous_backend_digest)",
+
+              "PREVIOUS_FRONTEND_IMAGE=$(cat .previous_frontend_digest)",
 
               "echo 'Previous backend image:'",
-              "echo \\$PREVIOUS_BACKEND_IMAGE",
 
+              "echo \"$PREVIOUS_BACKEND_IMAGE\"",
 
               "echo 'Previous frontend image:'",
-              "echo \\$PREVIOUS_FRONTEND_IMAGE",
 
+              "echo \"$PREVIOUS_FRONTEND_IMAGE\"",
 
-              "echo 'Logging in to Amazon ECR...'",
+              "echo '=========================================='",
+              "echo 'LOGGING INTO AMAZON ECR'",
+              "echo '=========================================='",
 
-              "aws ecr get-login-password --region \\$AWS_REGION | docker login --username AWS --password-stdin \\$ECR_REGISTRY",
+              "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 317492541707.dkr.ecr.us-east-1.amazonaws.com",
 
+              "echo 'ECR login successful.'",
 
-              "echo 'Pulling previous backend image...'",
+              "echo '=========================================='",
+              "echo 'PULLING PREVIOUS BACKEND IMAGE'",
+              "echo '=========================================='",
 
-              "docker pull \\$PREVIOUS_BACKEND_IMAGE",
+              "docker pull \"$PREVIOUS_BACKEND_IMAGE\"",
 
+              "echo 'Previous backend image pulled successfully.'",
 
-              "echo 'Pulling previous frontend image...'",
+              "echo '=========================================='",
+              "echo 'PULLING PREVIOUS FRONTEND IMAGE'",
+              "echo '=========================================='",
 
-              "docker pull \\$PREVIOUS_FRONTEND_IMAGE",
+              "docker pull \"$PREVIOUS_FRONTEND_IMAGE\"",
 
+              "echo 'Previous frontend image pulled successfully.'",
 
-              "echo 'Restoring previous backend image as latest...'",
+              "echo '=========================================='",
+              "echo 'RESTORING PREVIOUS BACKEND IMAGE'",
+              "echo '=========================================='",
 
-              "docker tag \\$PREVIOUS_BACKEND_IMAGE \\$ECR_REGISTRY/\\$ECR_BACKEND_REPOSITORY:latest",
+              "docker tag \"$PREVIOUS_BACKEND_IMAGE\" 317492541707.dkr.ecr.us-east-1.amazonaws.com/github-cicd-demo-backend:latest",
 
+              "echo 'Previous backend image tagged as latest.'",
 
-              "echo 'Restoring previous frontend image as latest...'",
+              "echo '=========================================='",
+              "echo 'RESTORING PREVIOUS FRONTEND IMAGE'",
+              "echo '=========================================='",
 
-              "docker tag \\$PREVIOUS_FRONTEND_IMAGE \\$ECR_REGISTRY/\\$ECR_FRONTEND_REPOSITORY:latest",
+              "docker tag \"$PREVIOUS_FRONTEND_IMAGE\" 317492541707.dkr.ecr.us-east-1.amazonaws.com/github-cicd-demo-frontend:latest",
 
+              "echo 'Previous frontend image tagged as latest.'",
 
-              "echo 'Starting previous version...'",
+              "echo '=========================================='",
+              "echo 'STOPPING CURRENT DEPLOYMENT'",
+              "echo '=========================================='",
+
+              "docker compose down",
+
+              "echo 'Current deployment stopped.'",
+
+              "echo '=========================================='",
+              "echo 'STARTING PREVIOUS DEPLOYMENT'",
+              "echo '=========================================='",
 
               "docker compose up -d --no-build",
 
+              "echo 'Rollback containers started.'",
 
-              "echo 'Waiting for rollback containers...'",
+              "echo 'Waiting for containers to initialize...'",
 
-              "sleep 10",
+              "sleep 15",
 
-
-              "echo 'Rollback container status:'",
+              "echo '=========================================='",
+              "echo 'ROLLBACK CONTAINER STATUS'",
+              "echo '=========================================='",
 
               "docker compose ps",
 
+              "echo '=========================================='",
+              "echo 'CHECKING BACKEND CONTAINER'",
+              "echo '=========================================='",
 
-              "echo 'Rollback completed successfully.'",
+              "docker compose ps --status running --services | grep -qx backend",
+
+              "echo 'Backend container is running.'",
 
               "echo '=========================================='",
-              "echo 'ROLLBACK SUCCESSFUL'",
-              "echo '=========================================='"
+              "echo 'CHECKING FRONTEND CONTAINER'",
+              "echo '=========================================='",
 
+              "docker compose ps --status running --services | grep -qx frontend",
+
+              "echo 'Frontend container is running.'",
+
+              "echo '=========================================='",
+              "echo 'CHECKING BACKEND HEALTH'",
+              "echo '=========================================='",
+
+              "docker compose exec -T backend python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\"",
+
+              "echo 'Backend health check passed.'",
+
+              "echo '=========================================='",
+              "echo 'CHECKING FRONTEND HEALTH'",
+              "echo '=========================================='",
+
+              "docker compose exec -T frontend wget --spider --quiet http://127.0.0.1/health",
+
+              "echo 'Frontend health check passed.'",
+
+              "echo '=========================================='",
+              "echo 'ROLLBACK COMPLETED SUCCESSFULLY'",
+              "echo '=========================================='"
             ]
           }
           EOF
 
+          echo "=========================================="
+          echo "ROLLBACK JSON"
+          echo "=========================================="
+
+          cat rollback.json
 
           echo "=========================================="
-          echo "SENDING ROLLBACK COMMAND"
+          echo "VALIDATING ROLLBACK JSON"
           echo "=========================================="
 
+          python3 -m json.tool rollback.json > /dev/null
+
+          echo "rollback.json is valid JSON."
+
+          echo "=========================================="
+          echo "SENDING ROLLBACK COMMAND TO EC2"
+          echo "=========================================="
 
           COMMAND_ID=$(aws ssm send-command \
-            --instance-ids '${{ vars.EC2_INSTANCE_ID }}' \
-            --document-name AWS-RunShellScript \
-            --comment "Rollback Meridian latest" \
+            --instance-ids "${EC2_INSTANCE_ID}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Rollback Meridian deployment" \
             --parameters file://rollback.json \
-            --query 'Command.CommandId' \
+            --region "${AWS_REGION}" \
+            --query "Command.CommandId" \
             --output text)
 
+          echo "Rollback Command ID: ${COMMAND_ID}"
 
-          echo "Rollback Command ID: $COMMAND_ID"
-
-
-          STATUS="Pending"
-
+          echo "=========================================="
+          echo "WAITING FOR ROLLBACK"
+          echo "=========================================="
 
           for i in {1..60}; do
 
             STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
-              --query 'Status' \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${EC2_INSTANCE_ID}" \
+              --region "${AWS_REGION}" \
+              --query "Status" \
               --output text)
 
+            echo "[${i}/60] Rollback status: ${STATUS}"
 
-            echo "[$i/60] Rollback status: $STATUS"
-
-
-            case "$STATUS" in
+            case "${STATUS}" in
 
               Success)
 
@@ -1117,7 +1185,20 @@ jobs:
                 echo "ROLLBACK SUCCEEDED"
                 echo "=========================================="
 
-                break
+                echo "Rollback output:"
+
+                aws ssm get-command-invocation \
+                  --command-id "${COMMAND_ID}" \
+                  --instance-id "${EC2_INSTANCE_ID}" \
+                  --region "${AWS_REGION}" \
+                  --query "StandardOutputContent" \
+                  --output text
+
+                echo "=========================================="
+                echo "ROLLBACK COMPLETED"
+                echo "=========================================="
+
+                exit 0
                 ;;
 
 
@@ -1127,27 +1208,75 @@ jobs:
                 echo "ROLLBACK FAILED"
                 echo "=========================================="
 
+                echo "SSM Status: ${STATUS}"
+
+                echo "=========================================="
+                echo "STANDARD OUTPUT"
+                echo "=========================================="
 
                 aws ssm get-command-invocation \
-                  --command-id "$COMMAND_ID" \
-                  --instance-id '${{ vars.EC2_INSTANCE_ID }}' \
-                  --query '{
-                    Status:Status,
-                    Output:StandardOutputContent,
-                    Error:StandardErrorContent
-                  }' \
-                  --output json
+                  --command-id "${COMMAND_ID}" \
+                  --instance-id "${EC2_INSTANCE_ID}" \
+                  --region "${AWS_REGION}" \
+                  --query "StandardOutputContent" \
+                  --output text || true
 
+                echo "=========================================="
+                echo "STANDARD ERROR"
+                echo "=========================================="
+
+                aws ssm get-command-invocation \
+                  --command-id "${COMMAND_ID}" \
+                  --instance-id "${EC2_INSTANCE_ID}" \
+                  --region "${AWS_REGION}" \
+                  --query "StandardErrorContent" \
+                  --output text || true
+
+                echo "=========================================="
+                echo "ROLLBACK FAILED"
+                echo "=========================================="
 
                 exit 1
                 ;;
 
 
+              Pending|InProgress)
+
+                if [ "${i}" -lt 60 ]; then
+                  echo "Rollback still running..."
+                  sleep 10
+                fi
+                ;;
+
+
               *)
 
+                echo "Unknown SSM status: ${STATUS}"
                 sleep 10
                 ;;
 
             esac
 
           done
+
+          echo "=========================================="
+          echo "ROLLBACK TIMEOUT"
+          echo "=========================================="
+
+          echo "Rollback did not complete within the expected time."
+
+          echo "Final SSM result:"
+
+          aws ssm get-command-invocation \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${EC2_INSTANCE_ID}" \
+            --region "${AWS_REGION}" \
+            --query '{
+              Status:Status,
+              StatusDetails:StatusDetails,
+              Output:StandardOutputContent,
+              Error:StandardErrorContent
+            }' \
+            --output json || true
+
+          exit 1
