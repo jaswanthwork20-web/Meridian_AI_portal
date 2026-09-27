@@ -23,7 +23,6 @@ env:
   ECR_FRONTEND_REPOSITORY: github-cicd-demo-frontend
   ECR_BACKEND_REPOSITORY: github-cicd-demo-backend
 
-
 # ==================================================
 # GLOBAL PERMISSIONS
 # ==================================================
