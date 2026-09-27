@@ -36,9 +36,6 @@ services:
     image: ${ECR_REGISTRY}/${ECR_FRONTEND_REPOSITORY}:latest
     restart: unless-stopped
 
-    environment:
-      API_BASE: ${PUBLIC_API_BASE:-http://localhost:8001}
-
     ports:
       - "80:80"
 
