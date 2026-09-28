@@ -546,61 +546,175 @@ jobs:
           echo "=========================================="
 
           # ----------------------------------------
+          # Configuration
+          # ----------------------------------------
+
+          AWS_REGION="${{ env.AWS_REGION }}"
+          EC2_INSTANCE_ID="${{ vars.EC2_INSTANCE_ID }}"
+          SECRET_NAME="Meridian-Secret-For-EC2"
+
+          echo "AWS Region: $AWS_REGION"
+          echo "EC2 Instance: $EC2_INSTANCE_ID"
+          echo "Secrets Manager secret: $SECRET_NAME"
+
+          # ----------------------------------------
           # Create SSM command JSON
           # ----------------------------------------
 
-          cat > ssm-commands.json <<'EOF'
+          cat > ssm-commands.json <<EOF
           {
             "commands": [
-              "set -e",
+              "set -euo pipefail",
+
               "echo '=========================================='",
               "echo 'STARTING DEPLOYMENT'",
               "echo '=========================================='",
+
               "cd /home/ssm-user/meridian-ai-portal",
+
               "echo 'Current directory:'",
               "pwd",
-              "echo 'Checking required files...'",
+
+              "echo 'Checking deployment files...'",
               "test -f docker-compose.yml",
-              "test -f .env",
-              "echo 'Saving current image digests for rollback...'",
+
+              "echo 'docker-compose.yml found'",
+
+              "echo '=========================================='",
+              "echo 'CHECKING AWS IDENTITY'",
+              "echo '=========================================='",
+
+              "aws sts get-caller-identity --region ${AWS_REGION}",
+
+              "echo '=========================================='",
+              "echo 'CHECKING SECRETS MANAGER ACCESS'",
+              "echo '=========================================='",
+
+              "aws secretsmanager describe-secret --secret-id ${SECRET_NAME} --region ${AWS_REGION} >/dev/null",
+
+              "echo 'Secrets Manager access confirmed'",
+
+              "echo '=========================================='",
+              "echo 'FETCHING APPLICATION SECRETS'",
+              "echo '=========================================='",
+
+              "SECRET_JSON=\$(aws secretsmanager get-secret-value --secret-id ${SECRET_NAME} --region ${AWS_REGION} --query SecretString --output text)",
+
+              "test -n \"\$SECRET_JSON\"",
+
+              "echo 'Secret retrieved successfully'",
+
+              "echo '=========================================='",
+              "echo 'CREATING RUNTIME ENVIRONMENT FILE'",
+              "echo '=========================================='",
+
+              "printf '%s' \"\$SECRET_JSON\" | python3 -c 'import sys,json; d=json.load(sys.stdin); [print(f\"{k}={v}\") for k,v in d.items()]' > .env",
+
+              "chmod 600 .env",
+
+              "echo 'Runtime environment file created'",
+
+              "echo 'Validating required environment variables...'",
+
+              "python3 - <<'PY'",
+              "import os",
+              "from pathlib import Path",
+              "",
+              "required = [",
+              "    'JIRA_INSTANCE_URL',",
+              "    'JIRA_EMAIL',",
+              "    'JIRA_API_TOKEN',",
+              "    'JIRA_PROJECT_KEY',",
+              "    'AWS_REGION',",
+              "    'AWS_BEDROCK_KB_ID',",
+              "    'AWS_BEDROCK_KB_REGION'",
+              "]",
+              "",
+              "env_file = Path('.env')",
+              "",
+              "if not env_file.exists():",
+              "    raise SystemExit('.env was not created')",
+              "",
+              "values = {}",
+              "",
+              "for line in env_file.read_text().splitlines():",
+              "    if '=' in line and not line.startswith('#'):",
+              "        key, value = line.split('=', 1)",
+              "        values[key.strip()] = value.strip()",
+              "",
+              "missing = [key for key in required if not values.get(key)]",
+              "",
+              "if missing:",
+              "    raise SystemExit('Missing required secret/config keys: ' + ', '.join(missing))",
+              "",
+              "print('All required environment variables are present')",
+              "PY",
+
+              "echo '=========================================='",
+              "echo 'SAVING CURRENT IMAGE DIGESTS'",
+              "echo '=========================================='",
+
               "if docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPOSITORY }}:latest' >/dev/null 2>&1; then docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPOSITORY }}:latest' --format '{{index .RepoDigests 0}}' > .previous_backend_digest || true; fi",
+
               "if docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest' >/dev/null 2>&1; then docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest' --format '{{index .RepoDigests 0}}' > .previous_frontend_digest || true; fi",
-              "echo 'AWS Region: ${{ env.AWS_REGION }}'",
-              "echo 'ECR Registry: ${{ env.ECR_REGISTRY }}'",
-              "echo 'Backend repository: ${{ env.ECR_BACKEND_REPOSITORY }}'",
-              "echo 'Frontend repository: ${{ env.ECR_FRONTEND_REPOSITORY }}'",
-              "echo 'Logging in to Amazon ECR...'",
-              "aws ecr get-login-password --region '${{ env.AWS_REGION }}' | docker login --username AWS --password-stdin '${{ env.ECR_REGISTRY }}'",
-              "echo 'Pulling latest Docker images...'",
+
+              "echo 'Previous image digests saved where available'",
+
+              "echo '=========================================='",
+              "echo 'LOGGING IN TO AMAZON ECR'",
+              "echo '=========================================='",
+
+              "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin '${{ env.ECR_REGISTRY }}'",
+
+              "echo 'ECR login successful'",
+
+              "echo '=========================================='",
+              "echo 'PULLING LATEST DOCKER IMAGES'",
+              "echo '=========================================='",
+
               "docker compose pull",
-              "echo 'Starting latest Docker containers...'",
+
+              "echo 'Docker images pulled successfully'",
+
+              "echo '=========================================='",
+              "echo 'STARTING LATEST DOCKER CONTAINERS'",
+              "echo '=========================================='",
+
               "docker compose up -d",
+
               "echo 'Waiting for containers to initialize...'",
               "sleep 10",
-              "echo 'Docker container status:'",
-              "docker compose ps",
-              "echo 'Deployment completed successfully.'",
+
               "echo '=========================================='",
-              "echo 'DEPLOYMENT SUCCESSFUL'",
+              "echo 'DOCKER CONTAINER STATUS'",
+              "echo '=========================================='",
+
+              "docker compose ps",
+
+              "echo '=========================================='",
+              "echo 'DEPLOYMENT COMPLETED SUCCESSFULLY'",
               "echo '=========================================='"
             ]
           }
           EOF
 
           echo "=========================================="
-          echo "SSM COMMAND JSON"
+          echo "SSM COMMAND JSON CREATED"
           echo "=========================================="
 
-          cat ssm-commands.json
+          # Do NOT print ssm-commands.json because it contains
+          # deployment configuration and makes logs unnecessarily verbose.
+          echo "SSM commands prepared successfully."
 
           echo "=========================================="
           echo "SENDING COMMAND TO EC2"
           echo "=========================================="
 
           COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
+            --region "$AWS_REGION" \
+            --instance-ids "$EC2_INSTANCE_ID" \
             --document-name AWS-RunShellScript \
-            --comment "Deploy Meridian latest" \
+            --comment "Deploy Meridian latest with Secrets Manager" \
             --parameters file://ssm-commands.json \
             --query 'Command.CommandId' \
             --output text)
@@ -616,8 +730,9 @@ jobs:
           for i in {1..60}; do
 
             STATUS=$(aws ssm get-command-invocation \
+              --region "$AWS_REGION" \
               --command-id "$COMMAND_ID" \
-              --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+              --instance-id "$EC2_INSTANCE_ID" \
               --query 'Status' \
               --output text)
 
@@ -661,8 +776,9 @@ jobs:
           echo "=========================================="
 
           aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
             --command-id "$COMMAND_ID" \
-            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+            --instance-id "$EC2_INSTANCE_ID" \
             --query '{
               Status:Status,
               StatusDetails:StatusDetails,
@@ -672,8 +788,9 @@ jobs:
             --output json
 
           STATUS=$(aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
             --command-id "$COMMAND_ID" \
-            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+            --instance-id "$EC2_INSTANCE_ID" \
             --query 'Status' \
             --output text)
 
@@ -690,7 +807,6 @@ jobs:
           echo "=========================================="
           echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
           echo "=========================================="
-
   # ==================================================
   # 14. VERIFY DEPLOYMENT
   # ==================================================
