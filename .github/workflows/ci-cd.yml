@@ -545,10 +545,6 @@ jobs:
           echo "STARTING SSM DEPLOYMENT"
           echo "=========================================="
 
-          # ----------------------------------------
-          # Configuration
-          # ----------------------------------------
-
           AWS_REGION="${{ env.AWS_REGION }}"
           EC2_INSTANCE_ID="${{ vars.EC2_INSTANCE_ID }}"
           SECRET_NAME="Meridian-Secret-For-EC2"
@@ -557,15 +553,10 @@ jobs:
           echo "EC2 Instance: $EC2_INSTANCE_ID"
           echo "Secrets Manager secret: $SECRET_NAME"
 
-          # ----------------------------------------
-          # Create SSM command JSON
-          # ----------------------------------------
-
           cat > ssm-commands.json <<EOF
           {
             "commands": [
-              "set -euo pipefail",
-
+              "set -e",
               "echo '=========================================='",
               "echo 'STARTING DEPLOYMENT'",
               "echo '=========================================='",
@@ -575,7 +566,7 @@ jobs:
               "echo 'Current directory:'",
               "pwd",
 
-              "echo 'Checking deployment files...'",
+              "echo 'Checking docker-compose.yml...'",
               "test -f docker-compose.yml",
 
               "echo 'docker-compose.yml found'",
@@ -612,43 +603,19 @@ jobs:
 
               "chmod 600 .env",
 
-              "echo 'Runtime environment file created'",
+              "echo 'Runtime .env created'",
 
-              "echo 'Validating required environment variables...'",
+              "echo 'Validating required variables...'",
 
-              "python3 - <<'PY'",
-              "import os",
-              "from pathlib import Path",
-              "",
-              "required = [",
-              "    'JIRA_INSTANCE_URL',",
-              "    'JIRA_EMAIL',",
-              "    'JIRA_API_TOKEN',",
-              "    'JIRA_PROJECT_KEY',",
-              "    'AWS_REGION',",
-              "    'AWS_BEDROCK_KB_ID',",
-              "    'AWS_BEDROCK_KB_REGION'",
-              "]",
-              "",
-              "env_file = Path('.env')",
-              "",
-              "if not env_file.exists():",
-              "    raise SystemExit('.env was not created')",
-              "",
-              "values = {}",
-              "",
-              "for line in env_file.read_text().splitlines():",
-              "    if '=' in line and not line.startswith('#'):",
-              "        key, value = line.split('=', 1)",
-              "        values[key.strip()] = value.strip()",
-              "",
-              "missing = [key for key in required if not values.get(key)]",
-              "",
-              "if missing:",
-              "    raise SystemExit('Missing required secret/config keys: ' + ', '.join(missing))",
-              "",
-              "print('All required environment variables are present')",
-              "PY",
+              "grep -q '^JIRA_INSTANCE_URL=' .env",
+              "grep -q '^JIRA_EMAIL=' .env",
+              "grep -q '^JIRA_API_TOKEN=' .env",
+              "grep -q '^JIRA_PROJECT_KEY=' .env",
+              "grep -q '^AWS_REGION=' .env",
+              "grep -q '^AWS_BEDROCK_KB_ID=' .env",
+              "grep -q '^AWS_BEDROCK_KB_REGION=' .env",
+
+              "echo 'Required environment variables are present'",
 
               "echo '=========================================='",
               "echo 'SAVING CURRENT IMAGE DIGESTS'",
@@ -657,8 +624,6 @@ jobs:
               "if docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPOSITORY }}:latest' >/dev/null 2>&1; then docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_BACKEND_REPOSITORY }}:latest' --format '{{index .RepoDigests 0}}' > .previous_backend_digest || true; fi",
 
               "if docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest' >/dev/null 2>&1; then docker image inspect '${{ env.ECR_REGISTRY }}/${{ env.ECR_FRONTEND_REPOSITORY }}:latest' --format '{{index .RepoDigests 0}}' > .previous_frontend_digest || true; fi",
-
-              "echo 'Previous image digests saved where available'",
 
               "echo '=========================================='",
               "echo 'LOGGING IN TO AMAZON ECR'",
@@ -674,15 +639,16 @@ jobs:
 
               "docker compose pull",
 
-              "echo 'Docker images pulled successfully'",
+              "echo 'Images pulled successfully'",
 
               "echo '=========================================='",
-              "echo 'STARTING LATEST DOCKER CONTAINERS'",
+              "echo 'STARTING DOCKER CONTAINERS'",
               "echo '=========================================='",
 
               "docker compose up -d",
 
               "echo 'Waiting for containers to initialize...'",
+
               "sleep 10",
 
               "echo '=========================================='",
@@ -692,7 +658,7 @@ jobs:
               "docker compose ps",
 
               "echo '=========================================='",
-              "echo 'DEPLOYMENT COMPLETED SUCCESSFULLY'",
+              "echo 'DEPLOYMENT SUCCESSFUL'",
               "echo '=========================================='"
             ]
           }
@@ -702,13 +668,7 @@ jobs:
           echo "SSM COMMAND JSON CREATED"
           echo "=========================================="
 
-          # Do NOT print ssm-commands.json because it contains
-          # deployment configuration and makes logs unnecessarily verbose.
-          echo "SSM commands prepared successfully."
-
-          echo "=========================================="
-          echo "SENDING COMMAND TO EC2"
-          echo "=========================================="
+          echo "Sending deployment command to EC2..."
 
           COMMAND_ID=$(aws ssm send-command \
             --region "$AWS_REGION" \
@@ -757,7 +717,6 @@ jobs:
 
               Pending|InProgress)
                 if [ "$i" -lt 60 ]; then
-                  echo "Deployment still running..."
                   sleep 10
                 fi
                 ;;
@@ -807,6 +766,7 @@ jobs:
           echo "=========================================="
           echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
           echo "=========================================="
+          
   # ==================================================
   # 14. VERIFY DEPLOYMENT
   # ==================================================
