@@ -34,16 +34,10 @@ def generate_bedrock_answer(user_query: str, matches: list) -> str:
     in region ap-south-1 (Mumbai) grounded strictly on retrieved Confluence documentation.
     """
     try:
-        aws_key = os.getenv("AWS_ACCESS_KEY_ID")
-        aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
-        aws_region = os.getenv("AWS_REGION", "ap-south-1")
-        if not aws_key or not aws_secret:
-            return None
+        aws_region = os.getenv("AWS_REGION", "us-east-1")
 
         br = boto3.client(
             "bedrock-runtime",
-            aws_access_key_id=aws_key,
-            aws_secret_access_key=aws_secret,
             region_name=aws_region,
         )
 
@@ -115,16 +109,10 @@ def is_conversational_greeting(query: str) -> bool:
 def generate_bedrock_conversational_reply(user_query: str) -> str:
     """Generate a warm, professional greeting and capability overview via Bedrock Claude."""
     try:
-        aws_key = os.getenv("AWS_ACCESS_KEY_ID")
-        aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
-        aws_region = os.getenv("AWS_REGION", "ap-south-1")
-        if not aws_key or not aws_secret:
-            return "Hello! I am your Meridian Enterprise Copilot. How can I help you today?"
+        aws_region = os.getenv("AWS_REGION", "us-east-1")
 
         br = boto3.client(
             "bedrock-runtime",
-            aws_access_key_id=aws_key,
-            aws_secret_access_key=aws_secret,
             region_name=aws_region,
         )
         prompt = (
@@ -233,15 +221,12 @@ def cloud_bedrock_retrieve(query, top_k=TOP_K):
     if not kb_id:
         return None
     try:
-        aws_key = os.getenv("AWS_ACCESS_KEY_ID")
-        aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY")
         kb_region = os.getenv("AWS_BEDROCK_KB_REGION") or os.getenv(
-            "AWS_REGION", "ap-south-1"
+            "AWS_REGION", "us-east-1"
         )
+
         rt = boto3.client(
             "bedrock-agent-runtime",
-            aws_access_key_id=aws_key,
-            aws_secret_access_key=aws_secret,
             region_name=kb_region,
         )
         res = rt.retrieve(knowledgeBaseId=kb_id, retrievalQuery={"text": query})
