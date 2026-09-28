@@ -15,7 +15,7 @@ from passlib.context import CryptContext
 
 # ------------------ CONFIG ------------------
 # In a real deployment, load this from an environment variable, never hardcode it.
-SECRET_KEY = "change-this-to-a-long-random-string-before-any-real-use"
+SECRET_KEY = "ON7lyUSa7lvTGtJqMSY1hVV2zCG8DtePHa-tnq3l1kyxoEA2vF9r7QsmMMOsE-veJI4EDXWg8d5D3ITcM_5UEg"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day, fine for a POC
 # ---------------------------------------------

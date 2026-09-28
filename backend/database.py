@@ -235,6 +235,26 @@ def init_db():
                 cursor.execute(f"ALTER TABLE products ADD COLUMN {col_name} {col_def}")
         raw_conn.commit()
 
+    from .auth_utils import hash_password
+
+    demo_users = [
+        ("customer@meridian.com", "Customer Store User", "customer"),
+        ("maya.sharma@meridian.com", "Maya Sharma", "employee"),
+    ]
+    with SessionLocal() as db:
+        for email, name, role in demo_users:
+            user = db.query(User).filter(User.email == email).first()
+            if user is None:
+                db.add(
+                    User(
+                        email=email,
+                        name=name,
+                        hashed_password=hash_password("password123"),
+                        role=role,
+                    )
+                )
+        db.commit()
+
     print(
         f"Database initialized at shopmart.db with tables: "
         f"{', '.join(Base.metadata.tables.keys())}"
